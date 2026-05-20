@@ -1,10 +1,10 @@
 :root { --stage-width: 640px; --stage-gap: 12px; }
 
-html,body { height:100%; margin:0; font-family:system-ui,Segoe UI,Arial; display:flex; align-items:center; justify-content:center; background:#111; color:#fff; }
+html,body { height:100%; margin:0; font-family:system-ui,Segoe UI,Arial; display:flex; align-items:center; justify-content:center;  background-image: url(Background.png);background-size: cover; color:#fff; }
 
 body{
-    background-image: url(Background.png);
     background-size: cover;
+    background: radial-gradient(ellipse at top right, #88888800, rgba(0, 0, 0, 0));
 }
 
 
