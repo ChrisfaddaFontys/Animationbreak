@@ -581,3 +581,4 @@ document.addEventListener('DOMContentLoaded', () => {
   window.addEventListener('resize', syncOverlaySize);
   stage.addEventListener('pointerdown', handlePointer);
 });
+

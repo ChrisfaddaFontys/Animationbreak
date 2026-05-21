@@ -2,6 +2,11 @@
   font-family: Grandia;
   src: url(Grandia-vnOMZ.otf);
 }
+
+.custom-image-cursor {
+  /* Provide the image path, then a comma, then a fallback built-in cursor */
+  cursor: url('hammercursor.png'), auto;
+}
 :root { --stage-width: 640px; --stage-gap: 12px; }
 
 html,body { height:100%; margin:0; font-family:'Grandia', system-ui,Segoe UI,Arial; display:flex; align-items:center; justify-content:center;  background-image: url(Background.png);background-size: cover; color:#fff; }
@@ -63,16 +68,25 @@ body{
 }
 
 #stage img#target {
-    position:relative;
-    z-index:1;
+  position:relative;
+  z-index:1;
   display:block;
   width: auto;
   height:auto;
   max-width: 100%;
   max-height: 95vh;
-  border-radius:6px;
+  border-radius:0px;
   box-shadow:0 8px 30px #000000;
   -webkit-user-drag: none;
+  cursor: url('hammer.png'), pointer;
+}
+
+#stage img#target:active {
+  /* Example: Makes the image slightly smaller to simulate being hit */
+  transform: scale(0.95); 
+  
+  /* Optional: Change the cursor to a "hitting" hammer image while clicking */
+  cursor: url('hammercursordown.png'), pointer;
 }
 
 .overlay {
