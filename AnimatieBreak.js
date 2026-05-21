@@ -6,7 +6,7 @@ const SHARD_TEMPLATES = (() => {
   const templates = [];
   const cols = 10;
   const rows = 20;
-  const jitterFactor = 0.04; // Controls how jagged/organic the shard shapes are
+  const jitterFactor = 0.01; // Controls how jagged/organic the shard shapes are
   
   // Create a grid of points with randomized inner intersections
   const points = [];
@@ -86,7 +86,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function drawCrack(x, y) {
     const ns = 'http://www.w3.org/2000/svg';
-    const branches = 8 + Math.floor(Math.random() * 4); 
+    const branches = 8 + Math.floor(Math.random() * 1); 
     const maxDim = Math.max(imgSize.w, imgSize.h);
     const baseLen = Math.max(60, maxDim * 0.45); 
 
@@ -120,16 +120,16 @@ document.addEventListener('DOMContentLoaded', () => {
       path.style.opacity = 0;
       
       // Accelerated branch drawing profile
-      path.style.transition = 'stroke-dashoffset 500ms ease-out, opacity 50ms linear';
+      path.style.transition = 'stroke-dashoffset 100ms ease-out, opacity 50ms linear';
 
       crackLayer.appendChild(path);
 
-      requestAnimationFrame(() => {
-        // High speed sequence propagation layout timing
+        requestAnimationFrame(() => {
+        // All branches trigger simultaneously after a tiny 10ms layout delay
         setTimeout(() => {
           path.style.opacity = 1;
           path.style.strokeDashoffset = 0;
-        }, b * 15 + Math.random() * 20); 
+        }, 10); 
       });
     }
   }
@@ -255,7 +255,7 @@ document.addEventListener('DOMContentLoaded', () => {
       filter.setAttribute('height', '300%');
 
       const blur = document.createElementNS(ns, 'feGaussianBlur');
-      blur.setAttribute('stdDeviation', '18'); 
+      blur.setAttribute('stdDeviation', '100'); 
       blur.setAttribute('result', 'heavyBlur');
 
       const colorMatrix = document.createElementNS(ns, 'feColorMatrix');
@@ -365,8 +365,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const spotlightGroup = document.createElementNS(ns, 'g');
     spotlightGroup.id = 'rewardSpotlight';
     
-    const spotSize = Math.min(imgSize.w, imgSize.h) * 0.99; 
-    const iconSize = Math.min(imgSize.w, imgSize.h) * 0.60; 
+    const spotSize = Math.min(imgSize.w, imgSize.h) * 2; 
+    const iconSize = Math.min(imgSize.w, imgSize.h) * 1.2; 
     const centerX = imgSize.w / 2;
     const centerY = imgSize.h / 2;
 
@@ -395,9 +395,9 @@ document.addEventListener('DOMContentLoaded', () => {
       colorMatrix.setAttribute('type', 'matrix');
       // Vibrant gold channel configuration rules
       colorMatrix.setAttribute('values', `
-        1 0 0 0 1.0  
-        0 1 0 0 0.85 
-        0 0 1 0 0.3  
+        1 0 0 0 1.23 
+        0 1 0 0 2 
+        0 0 1 0 0.00  
         0 0 0 1 0
       `);
       colorMatrix.setAttribute('result', 'coloredGlow');
@@ -418,7 +418,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 3. Structural Backdrop Image Layer
     const backdropImg = document.createElementNS(ns, 'image');
-    backdropImg.setAttributeNS('http://www.w3.org/1999/xlink', 'href', '');
+    backdropImg.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'vuurwerkshow.gif');
     backdropImg.setAttribute('width', spotSize);
     backdropImg.setAttribute('height', spotSize);
     backdropImg.setAttribute('x', centerX - (spotSize / 2));
@@ -439,15 +439,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // 5. Text Label Layer
     const text = document.createElementNS(ns, 'text');
     text.setAttribute('x', centerX);
-    text.setAttribute('y', centerY + (iconSize * 0.6));
+    text.setAttribute('y', centerY + (iconSize * 0.55));
     text.setAttribute('text-anchor', 'middle');
     text.setAttribute('dominant-baseline', 'middle');
     text.setAttribute('fill', '#ffffff');
-    text.style.fontFamily = 'system-ui, sans-serif';
-    text.style.fontWeight = '800';
-    text.style.fontSize = `${Math.min(imgSize.w, imgSize.h) * 0.1}px`;
-    text.style.letterSpacing = '1px';
-    text.textContent = 'Claim je prijs!';
+    text.style.fontFamily = "'Grandia', system-ui, sans-serif";
+    text.style.fontWeight = '900';
+    text.style.fontSize = `${Math.min(imgSize.w, imgSize.h) * 0.07}px`;
+    text.style.letterSpacing = '2px';
+    text.textContent = 'Je cadeau is onderweg !';
     text.style.filter = 'drop-shadow(0px 0px 8px rgba(255, 255, 255, 0.6))';
 
     spotlightGroup.appendChild(backdropImg); 
