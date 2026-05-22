@@ -1,0 +1,22 @@
+{
+	"folders": [
+		{
+			"name": "Animationbreak",
+			"path": "."
+		},
+		{
+			"name": "grandia-font",
+			"path": "../../../Downloads/grandia-font"
+		},
+		{
+			"name": "tenna-head-reference",
+			"path": "../../../Downloads/tenna-head-reference"
+		},
+		{
+			"path": "../../../Downloads/icons8-hammer-emoji"
+		}
+	],
+	"settings": {
+		"liveServer.settings.multiRootWorkspaceName": "Animationbreak"
+	}
+}

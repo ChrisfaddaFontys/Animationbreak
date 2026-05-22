@@ -5,27 +5,27 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Break-on-3 Demo</title>
   <link rel="stylesheet" href="AnimatieBreak.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gifshot/0.4.5/gifshot.min.js"></script>
 </head>
 <body>
-    
+  
   <main id="stage" aria-label="Breakable stage">
     <!-- The image to break. Replace "your-image.jpg" later with your file name. -->
-    <img id="target" src="led screen.png" alt="Breakable target" />
+    <img id="target" src="led screen.png" alt="Breakable target"/>
 
     <!-- SVG overlay for cracks (drawn on clicks 1 and 2) -->
     <svg id="crackLayer" class="overlay" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"></svg>
 
     <!-- SVG group where shard elements (clipped image pieces) will be inserted -->
     <svg id="shardLayer" class="overlay" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"></svg>
+    
 
-    <!-- Progress bar showing clicks remaining -->
-    <div id="progress" aria-hidden="true">
-      <div id="progressFill"></div>
-    </div>
   </main>
 
 
 
-  <script src="AnimatieBreak.js" defer></script>
+
+
+  <script type="module" src="AnimatieBreak.js" defer></script> 
 </body>
 </html>

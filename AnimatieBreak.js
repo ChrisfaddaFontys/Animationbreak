@@ -1,31 +1,42 @@
 // Basic config
 const MAX_CLICKS = 3;
-const SHARD_TEMPLATES = [
-  [[0,0],[0.2,0.025],[0.15,0.45],[0,0.5]],
-  [[0.2,0.025],[0.4,0.05],[0.3,0.4],[0.15,0.45]],
-  [[0.4,0.05],[0.55,0.035],[0.725,0.265],[0.6,0.35],[0.3,0.4]],
-  [[0.55,0.035],[0.7,0.02],[0.85,0.18],[0.725,0.265]],
-  [[0.85,0.18],[0.915,0.215],[0.795,0.475],[0.6,0.35]],
-  [[0.915,0.215],[0.98,0.25],[0.99,0.6],[0.795,0.475]],
-  [[0,0.5],[0.15,0.45],[0.365,0.65],[0.23,0.78]],
-  [[0.15,0.45],[0.3,0.4],[0.5,0.52],[0.365,0.65]],
-  [[0.23,0.78],[0.365,0.65],[0.465,0.95],[0.28,0.98]],
-  [[0.365,0.65],[0.5,0.52],[0.65,0.92],[0.465,0.95]],
-  [[0.65,0.92],[0.775,0.87],[0.63,0.98],[0.28,0.98]],
-  [[0.775,0.87],[0.9,0.82],[0.98,0.98],[0.63,0.98]],
-  [[0.5,0.52],[0.55,0.435],[0.885,0.575],[0.78,0.55]],
-  [[0.55,0.435],[0.6,0.35],[0.99,0.6],[0.885,0.575]],
-  [[0.6,0.35],[0.69,0.45],[0.875,0.29],[0.85,0.18]],
-  [[0.69,0.45],[0.78,0.55],[0.9,0.4],[0.875,0.29]],
-  [[0.3,0.4],[0.4,0.3],[0.6,0.35]],
-  [[0.4,0.3],[0.5,0.2],[0.6,0.35]],
-  [[0.5,0.2],[0.6,0.16],[0.85,0.18]],
-  [[0.6,0.16],[0.7,0.12],[0.85,0.18]],
-  [[0.5,0.52],[0.5,0.36],[0.3,0.4]],
-  [[0.5,0.36],[0.5,0.2],[0.3,0.4]],
-  [[0.28,0.98],[0.39,0.75],[0.65,0.92]],
-  [[0.39,0.75],[0.5,0.52],[0.65,0.92]]
-];
+
+// Programmatically generate high-density, interlocking organic micro-shards (10x20 grid with jittered vertices)
+const SHARD_TEMPLATES = (() => {
+  const templates = [];
+  const cols = 10;
+  const rows = 20;
+  const jitterFactor = 0.01; // Controls how jagged/organic the shard shapes are
+  
+  // Create a grid of points with randomized inner intersections
+  const points = [];
+  for (let r = 0; r <= rows; r++) {
+    points[r] = [];
+    for (let c = 0; c <= cols; c++) {
+      let x = c / cols;
+      let y = r / rows;
+      
+      // Jitter the internal vertices but lock the outer borders cleanly to [0,1]
+      if (c > 0 && c < cols) x += (Math.random() - 0.5) * jitterFactor;
+      if (r > 0 && r < rows) y += (Math.random() - 0.5) * jitterFactor;
+      
+      points[r][c] = [Math.max(0, Math.min(1, x)), Math.max(0, Math.min(1, y))];
+    }
+  }
+  
+  // Assemble the coordinates into interlocking quadrilaterals
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      templates.push([
+        points[r][c],       // Top-Left
+        points[r][c+1],     // Top-Right
+        points[r+1][c+1],   // Bottom-Right
+        points[r+1][c]      // Bottom-Left
+      ]);
+    }
+  }
+  return templates;
+})();
 
 document.addEventListener('DOMContentLoaded', () => {
   const img = document.getElementById('target');
@@ -65,8 +76,7 @@ document.addEventListener('DOMContentLoaded', () => {
     shardLayer.style.position = 'absolute';
     crackLayer.style.left = shardLayer.style.left = '0';
     crackLayer.style.top = shardLayer.style.top = '0';
-    crackLayer.style.pointerEvents = shadowLayer.style.pointerEvents = 'none'; // text styling safety override
-    shardLayer.style.pointerEvents = 'none';
+    crackLayer.style.pointerEvents = shardLayer.style.pointerEvents = 'none';
   }
 
   function updateProgress() {
@@ -76,7 +86,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function drawCrack(x, y) {
     const ns = 'http://www.w3.org/2000/svg';
-    const branches = 4 + Math.floor(Math.random() * 3); 
+    const branches = 8 + Math.floor(Math.random() * 1); 
     const maxDim = Math.max(imgSize.w, imgSize.h);
     const baseLen = Math.max(60, maxDim * 0.45); 
 
@@ -108,14 +118,18 @@ document.addEventListener('DOMContentLoaded', () => {
       path.style.strokeDasharray = approxLen;
       path.style.strokeDashoffset = approxLen;
       path.style.opacity = 0;
+      
+      // Accelerated branch drawing profile
+      path.style.transition = 'stroke-dashoffset 100ms ease-out, opacity 50ms linear';
 
       crackLayer.appendChild(path);
 
-      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+        // All branches trigger simultaneously after a tiny 10ms layout delay
         setTimeout(() => {
           path.style.opacity = 1;
           path.style.strokeDashoffset = 0;
-        }, b * 60 + Math.random() * 80);
+        }, 10); 
       });
     }
   }
@@ -132,7 +146,7 @@ document.addEventListener('DOMContentLoaded', () => {
     wrapper.style.transformOrigin = `${imgSize.w / 2}px ${imgSize.h / 2}px`;
     shardLayer.appendChild(wrapper);
 
-    const INFLATION_BASE = 1.16; 
+    const INFLATION_BASE = 1.03; 
 
     SHARD_TEMPLATES.forEach((poly, i) => {
       const id = `clip-${i}-${Date.now()}`;
@@ -142,7 +156,7 @@ document.addEventListener('DOMContentLoaded', () => {
       cx /= poly.length;
       cy /= poly.length;
 
-      const inflation = INFLATION_BASE * (1 + (Math.random() - 0.5) * 0.08);
+      const inflation = INFLATION_BASE * (1 + (Math.random() - 0.5) * 0.02);
 
       const inflatedPoints = poly.map(p => {
         const dx = p[0] - cx;
@@ -177,9 +191,9 @@ document.addEventListener('DOMContentLoaded', () => {
     shards.forEach(node => {
       node.style.transition = 'transform 900ms cubic-bezier(.2,.9,.2,1), opacity 900ms linear';
       node.style.opacity = '1';
-      const tx = (Math.random() - 0.5) * imgSize.w * 0.6;
-      const ty = (Math.random() - 0.5) * imgSize.h * 0.6;
-      const r = (Math.random() - 0.5) * 70;
+      const tx = (Math.random() - 0.5) * imgSize.w * 0.75;
+      const ty = (Math.random() - 0.5) * imgSize.h * 0.75;
+      const r = (Math.random() - 0.5) * 90;
       node.style.transform = `translate(${tx}px, ${ty}px) rotate(${r}deg) scale(1)`;
     });
   }
@@ -219,12 +233,88 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 1200);
   }
 
+  // Spawns immediately and expands dynamically over 1200ms alongside shard swirl with a native premium glow filter
+  function triggerDynamicGreenBall(onComplete) {
+    const ns = 'http://www.w3.org/2000/svg';
+    
+    // 1. Grab or create standard defs layout pool to house our filter blueprints
+    let defs = shardLayer.querySelector('defs');
+    if (!defs) {
+      defs = document.createElementNS(ns, 'defs');
+      shardLayer.appendChild(defs);
+    }
+
+    // 2. Build out our unique, high-intensity reusable glow blueprint wrapper
+    const filterId = 'vortexCoreGlow';
+    if (!document.getElementById(filterId)) {
+      const filter = document.createElementNS(ns, 'filter');
+      filter.setAttribute('id', filterId);
+      filter.setAttribute('x', '-100%');
+      filter.setAttribute('y', '-100%');
+      filter.setAttribute('width', '300%');
+      filter.setAttribute('height', '300%');
+
+      const blur = document.createElementNS(ns, 'feGaussianBlur');
+      blur.setAttribute('stdDeviation', '100'); 
+      blur.setAttribute('result', 'heavyBlur');
+
+      const colorMatrix = document.createElementNS(ns, 'feColorMatrix');
+      colorMatrix.setAttribute('type', 'matrix');
+      colorMatrix.setAttribute('values', `
+        0 0 0 0 0.0
+        0 1 0 0 1.0
+        0 0 0 0 0.4
+        0 0 0 1 0
+      `);
+      colorMatrix.setAttribute('result', 'neonGreenGlow');
+
+      const merge = document.createElementNS(ns, 'feMerge');
+      const node1 = document.createElementNS(ns, 'feMergeNode');
+      node1.setAttribute('in', 'neonGreenGlow');
+      const node2 = document.createElementNS(ns, 'feMergeNode');
+      node2.setAttribute('in', 'SourceGraphic'); 
+
+      merge.appendChild(node1);
+      merge.appendChild(node2);
+      filter.appendChild(blur);
+      filter.appendChild(colorMatrix);
+      filter.appendChild(merge);
+      defs.appendChild(filter);
+    }
+
+    // 3. Construct the Core Ball Element
+    const ball = document.createElementNS(ns, 'circle');
+    ball.setAttribute('cx', imgSize.w / 2);
+    ball.setAttribute('cy', imgSize.h / 2);
+    ball.setAttribute('r', '0'); 
+    
+    ball.setAttribute('fill', '#d1ff00'); 
+    
+    ball.setAttribute('filter', `url(#${filterId})`);
+    ball.style.opacity = '1';
+    
+    shardLayer.appendChild(ball);
+    ball.getBoundingClientRect(); 
+    
+    ball.style.transition = 'r 3000ms cubic-bezier(0.4, 0, 0.2, 1)';
+    
+    requestAnimationFrame(() => {
+      const maxGrownRadius = Math.min(imgSize.w, imgSize.h) * 0.77;
+      ball.setAttribute('r', maxGrownRadius);
+    });
+    
+    setTimeout(() => {
+      if (ball.parentNode) ball.parentNode.removeChild(ball);
+      if (onComplete) onComplete();
+    }, 1250);
+  }
+
   function triggerBlackHole() {
     triggerSwirlRings();
 
     const wrapper = document.getElementById('shardWrapper');
     if (wrapper) {
-      wrapper.style.transition = 'transform 1200ms cubic-bezier(0.5, 0, 0.2, 1)';
+      wrapper.style.transition = 'transform 3000ms cubic-bezier(0.5, 0, 0.2, 1)';
       wrapper.style.transform = 'rotate(-540deg)';
     }
 
@@ -234,36 +324,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const spin = 1080 + (Math.random() * 360);
         node.style.transform = `translate(0px, 0px) rotate(${spin}deg) scale(0)`;
         node.style.opacity = '0';
-      }, index * 25); 
+      }, index * 4); 
     });
-  }
-
-  function triggerGreenBall(onComplete) {
-    const ns = 'http://www.w3.org/2000/svg';
-    const ball = document.createElementNS(ns, 'circle');
-    
-    ball.setAttribute('cx', imgSize.w / 2);
-    ball.setAttribute('cy', imgSize.h / 2);
-    ball.setAttribute('r', '2'); 
-    ball.setAttribute('fill', '#00ff66'); 
-    
-    ball.style.filter = 'drop-shadow(0px 0px 15px rgba(0, 255, 102, 0.95))';
-    ball.style.opacity = '1';
-    
-    shardLayer.appendChild(ball);
-    ball.getBoundingClientRect();
-    
-    ball.style.transition = 'r 700ms cubic-bezier(0.34, 1.56, 0.64, 1)';
-    
-    requestAnimationFrame(() => {
-      const maxGrownRadius = Math.min(imgSize.w, imgSize.h) * 0.12;
-      ball.setAttribute('r', maxGrownRadius);
-    });
-    
-    setTimeout(() => {
-      if (ball.parentNode) ball.parentNode.removeChild(ball);
-      if (onComplete) onComplete();
-    }, 700);
   }
 
   function triggerFlash(onComplete) {
@@ -282,14 +344,13 @@ document.addEventListener('DOMContentLoaded', () => {
     flash.getBoundingClientRect();
     
     const maxRadius = Math.max(imgSize.w, imgSize.h) * 1.5;
-    flash.style.transition = 'r 450ms cubic-bezier(0.1, 0.8, 0.3, 1), opacity 650ms ease-in';
+    flash.style.transition = 'r 1500ms cubic-bezier(0.1, 0.8, 0.3, 1), opacity 3000ms ease-in';
     
     requestAnimationFrame(() => {
       flash.setAttribute('r', maxRadius);
       flash.style.opacity = '0';
     });
     
-    // Hand over to the spotlight callback mid-fade for a cleaner visual blend
     setTimeout(() => {
       if (onComplete) onComplete();
     }, 350);
@@ -299,42 +360,101 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 700);
   }
 
-  // Phase 3: Reveal the glowing reward area at the epicenter
   function triggerRewardSpotlight() {
     const ns = 'http://www.w3.org/2000/svg';
     const spotlightGroup = document.createElementNS(ns, 'g');
     spotlightGroup.id = 'rewardSpotlight';
     
-    // Smooth spotlight ring and fill
-    const circle = document.createElementNS(ns, 'circle');
-    circle.setAttribute('cx', imgSize.w / 2);
-    circle.setAttribute('cy', imgSize.h / 2);
-    circle.setAttribute('r', Math.min(imgSize.w, imgSize.h) * 0.22); 
-    circle.setAttribute('fill', 'rgba(255, 255, 255, 0.12)'); 
-    circle.setAttribute('stroke', '#ffffff');
-    circle.setAttribute('stroke-width', '2.5');
+    const spotSize = Math.min(imgSize.w, imgSize.h) * 2; 
+    const iconSize = Math.min(imgSize.w, imgSize.h) * 1.2; 
+    const centerX = imgSize.w / 2;
+    const centerY = imgSize.h / 2;
+
+    // 1. Grab or create standard defs pool for the premium item glow filter
+    let defs = shardLayer.querySelector('defs');
+    if (!defs) {
+      defs = document.createElementNS(ns, 'defs');
+      shardLayer.appendChild(defs);
+    }
+
+    // 2. Build the unique high-intensity ITEM GLOW filter blueprint
+    const itemFilterId = 'rewardItemGlow';
+    if (!document.getElementById(itemFilterId)) {
+      const filter = document.createElementNS(ns, 'filter');
+      filter.setAttribute('id', itemFilterId);
+      filter.setAttribute('x', '-50%');
+      filter.setAttribute('y', '-50%');
+      filter.setAttribute('width', '200%');
+      filter.setAttribute('height', '200%');
+
+      const blur = document.createElementNS(ns, 'feGaussianBlur');
+      blur.setAttribute('stdDeviation', '100'); 
+      blur.setAttribute('result', 'blurOut');
+
+      const colorMatrix = document.createElementNS(ns, 'feColorMatrix');
+      colorMatrix.setAttribute('type', 'matrix');
+      // Vibrant gold channel configuration rules
+      colorMatrix.setAttribute('values', `
+        1 0 0 0 1.23 
+        0 1 0 0 2 
+        0 0 1 0 0.00  
+        0 0 0 1 0
+      `);
+      colorMatrix.setAttribute('result', 'coloredGlow');
+
+      const merge = document.createElementNS(ns, 'feMerge');
+      const node1 = document.createElementNS(ns, 'feMergeNode');
+      node1.setAttribute('in', 'coloredGlow');
+      const node2 = document.createElementNS(ns, 'feMergeNode');
+      node2.setAttribute('in', 'SourceGraphic'); 
+
+      merge.appendChild(node1);
+      merge.appendChild(node2);
+      filter.appendChild(blur);
+      filter.appendChild(colorMatrix);
+      filter.appendChild(merge);
+      defs.appendChild(filter);
+    }
+
+    // 3. Structural Backdrop Image Layer
+    const backdropImg = document.createElementNS(ns, 'image');
+    backdropImg.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'vuurwerkshow.gif');
+    backdropImg.setAttribute('width', spotSize);
+    backdropImg.setAttribute('height', spotSize);
+    backdropImg.setAttribute('x', centerX - (spotSize / 2));
+    backdropImg.setAttribute('y', centerY - (spotSize / 2));
+    backdropImg.style.filter = 'drop-shadow(0px 0px 25px rgba(255, 255, 255, 0.85))';
     
-    // Volumetric glow look
-    circle.style.filter = 'drop-shadow(0px 0px 25px rgba(255, 255, 255, 0.85))';
+    // 4. Foreground Reward Gift layer (with our custom glow filter blueprint applied)
+    const rewardImg = document.createElementNS(ns, 'image');
+    rewardImg.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'tennagif.gif');
+    rewardImg.setAttribute('width', iconSize);
+    rewardImg.setAttribute('height', iconSize);
+    rewardImg.setAttribute('x', centerX - (iconSize / 2));
+    rewardImg.setAttribute('y', centerY - (iconSize * 0.55)); 
     
-    // Anchor placeholder text for rewards display
+    // Hook up our newly created gold glow filter
+    rewardImg.setAttribute('filter', `url(#${itemFilterId})`);
+
+    // 5. Text Label Layer
     const text = document.createElementNS(ns, 'text');
-    text.setAttribute('x', imgSize.w / 2);
-    text.setAttribute('y', imgSize.h / 2);
+    text.setAttribute('x', centerX);
+    text.setAttribute('y', centerY + (iconSize * 0.55));
     text.setAttribute('text-anchor', 'middle');
     text.setAttribute('dominant-baseline', 'middle');
     text.setAttribute('fill', '#ffffff');
-    text.style.fontFamily = 'system-ui, sans-serif';
-    text.style.fontWeight = '800';
-    text.style.fontSize = `${Math.min(imgSize.w, imgSize.h) * 0.045}px`;
-    text.style.letterSpacing = '1px';
-    text.textContent = 'REWARD UNLOCKED';
+    text.style.fontFamily = "'Grandia', system-ui, sans-serif";
+    text.style.fontWeight = '900';
+    text.style.fontSize = `${Math.min(imgSize.w, imgSize.h) * 0.07}px`;
+    text.style.letterSpacing = '2px';
+    text.textContent = 'Je cadeau is onderweg !';
     text.style.filter = 'drop-shadow(0px 0px 8px rgba(255, 255, 255, 0.6))';
 
-    spotlightGroup.appendChild(circle);
+    spotlightGroup.appendChild(backdropImg); 
+    spotlightGroup.appendChild(rewardImg); 
+    text.style.pointerEvents = 'none'; // Ensure text elements maintain transparent pointer safety overlays
     spotlightGroup.appendChild(text);
     
-    // Prep initial micro-states for elastic pop animation
     spotlightGroup.style.opacity = '0';
     spotlightGroup.style.transformOrigin = `${imgSize.w / 2}px ${imgSize.h / 2}px`;
     spotlightGroup.style.transform = 'scale(0.65)';
@@ -342,13 +462,51 @@ document.addEventListener('DOMContentLoaded', () => {
     shardLayer.appendChild(spotlightGroup);
     spotlightGroup.getBoundingClientRect(); 
     
-    // Pop onto screen with a slight elastic overshoot bounce
-    spotlightGroup.style.transition = 'transform 650ms cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 500ms ease-out';
+    spotlightGroup.style.transition = 'transform 3000ms cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 500ms ease-out';
     
     requestAnimationFrame(() => {
       spotlightGroup.style.opacity = '1';
       spotlightGroup.style.transform = 'scale(1)';
     });
+
+    setTimeout(() => {
+      if (typeof gifshot === 'undefined') {
+        console.warn("GIFShot library not detected.");
+        return;
+      }
+
+      const svgString = new XMLSerializer().serializeToString(shardLayer);
+      const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+      const URL = window.URL || window.webkitURL || window;
+      const blobURL = URL.createObjectURL(svgBlob);
+      
+      const captureCanvas = document.createElement('canvas');
+      captureCanvas.width = imgSize.w;
+      captureCanvas.height = imgSize.h;
+      const ctx = captureCanvas.getContext('2d');
+      
+      const renderVehicle = new Image();
+      renderVehicle.onload = function() {
+        ctx.clearRect(0, 0, imgSize.w, imgSize.h);
+        ctx.drawImage(renderVehicle, 0, 0);
+        const dataFrameUrl = captureCanvas.toDataURL('image/png');
+        
+        gifshot.createGIF({
+          gifWidth: imgSize.w,
+          gifHeight: imgSize.h,
+          transparent: 'rgba(0,0,0,0)', 
+          images: [dataFrameUrl],
+          interval: 0.1
+        }, function (obj) {
+          if (!obj.error) {
+            console.log("%c Transparent Reward GIF Ready!", "color: #00ff66; font-weight: bold; font-size: 14px;");
+            console.log("Copy-paste this base64 link into a new browser tab to download your gif:", obj.image);
+          }
+          URL.revokeObjectURL(blobURL);
+        });
+      };
+      renderVehicle.src = blobURL;
+    }, 800); 
   }
 
   function resetShards() {
@@ -388,14 +546,11 @@ document.addEventListener('DOMContentLoaded', () => {
       setTimeout(() => {
         triggerBlackHole();
         
-        setTimeout(() => {
-          triggerGreenBall(() => {
-            // Chains down perfectly into the spotlight reveal sequence
-            triggerFlash(() => {
-              triggerRewardSpotlight();
-            });
+        triggerDynamicGreenBall(() => {
+          triggerFlash(() => {
+            triggerRewardSpotlight();
           });
-        }, 1100);
+        });
         
       }, 1000);
     });
@@ -426,3 +581,4 @@ document.addEventListener('DOMContentLoaded', () => {
   window.addEventListener('resize', syncOverlaySize);
   stage.addEventListener('pointerdown', handlePointer);
 });
+
