@@ -3,140 +3,163 @@
   src: url(Grandia-vnOMZ.otf);
 }
 
+/* Control stage scale by setting --stage-scale on #stage (default 1) */
+:root {
+  --stage-scale: 1;
+  --stage-width: 1440px;
+}
+
+/* Page background removed (target image will cover viewport) */
+html, body {
+  height: 100%;
+  margin: 0;
+  background: none !important;
+  background-image: none !important;
+  color: #fff;
+  font-family: 'Grandia', system-ui, "Segoe UI", Arial, sans-serif;
+}
+
+/* Optional custom cursor class */
 .custom-image-cursor {
-  /* Provide the image path, then a comma, then a fallback built-in cursor */
   cursor: url('hammercursor.png'), auto;
 }
-:root { --stage-width: 640px; --stage-gap: 12px; }
 
-html,body { height:100%; margin:0; font-family:'Grandia', system-ui,Segoe UI,Arial; display:flex; align-items:center; justify-content:center;  background-image: url(Background.png);background-size: cover; color:#fff; }
-
-body{
-    background-size: cover;
-    background: radial-gradient(ellipse at top right, #88888800, rgba(0, 0, 0, 0));
-}
-
-
-/* Stage should not clip shards (allow overflow) */
+/* Stage covers the viewport and is scalable via CSS variable --stage-scale */
 #stage {
-  max-width: min(var(--stage-width), 95vw);
-  max-height: 95vh;
-  position:relative;
-  user-select:none;
-  touch-action:manipulation;
-  overflow: visible; /* allow shards to move outside image */
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 100vw;
+  height: 100vh;
+  max-width: none;
+  max-height: none;
+  display: block;
+  transform-origin: center center;
+  transform: scale(var(--stage-scale, 1));
+  user-select: none;
+  touch-action: manipulation;
+  overflow: visible;
+  z-index: 100;
+  pointer-events: auto;
 }
 
-/* ensure image and overlays stack correctly */
-#stage img#target { position: relative; z-index: 1; }
-#crackLayer { position: absolute; left:0; top:0; width:100%; height:100%; z-index: 2; overflow: hidden; pointer-events: none; }
-#shardLayer { position: absolute; left:0; top:0; width:100%; height:100%; z-index: 3; overflow: visible; pointer-events: none; }
-
-/* keep crack visuals as before (tweak as you like) */
-#crackLayer path {
-  fill:none;
-  stroke:#FFFFFF;
-  stroke-width:3;
-  stroke-linecap:round;
-  stroke-linejoin:round;
-  opacity:0;
-  transition:opacity 220ms ease, stroke-dashoffset 600ms ease;
-  filter: drop-shadow(0 2px 8px #555555);
-  stroke-dasharray:300;
-  stroke-dashoffset:300;
-}
-
-#stage { overflow: visible; }         /* ensure parent doesn't clip */
-.overlay { overflow: visible; }       /* allow SVG children to draw outside */
-
-#stage {
-  max-width: min(var(--stage-width), 95vw);
-  max-height: 95vh;
-  position:relative;
-  user-select:none;
-  touch-action:manipulation;
-}
-
-#progress {
-  position: absolute;
-  left: 50%;
-  bottom: 12px;
-  transform: translateX(-50%);
-  width: 180px; /* adjust width */
-  height: 10px;
-  z-index: 999; /* above shards */
-}
-
+/* The target image covers the whole stage. Use object-fit to preserve aspect ratio. */
 #stage img#target {
-  position:relative;
-  z-index:1;
-  display:block;
-  width: auto;
-  height:auto;
-  max-width: 100%;
-  max-height: 95vh;
-  border-radius:0px;
-  box-shadow:0 8px 30px #000000;
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 1;
+  display: block;
   -webkit-user-drag: none;
   cursor: url('hammer.png'), pointer;
 }
 
+/* Active press cursor (optional) */
 #stage img#target:active {
-  /* Example: Makes the image slightly smaller to simulate being hit */
-  transform: scale(0.95); 
-  
-  /* Optional: Change the cursor to a "hitting" hammer image while clicking */
   cursor: url('hammercursordown.png'), pointer;
 }
 
+/* Overlays inside stage (SVG layers) */
 .overlay {
-  position:absolute;
-  left:0; top:0;
-  width:100%; height:100%;
-  pointer-events:none;
-  z-index:2;
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 2;
 }
 
-#crackLayer path {
-  fill:none;
-  stroke:#FFFFFF;
-  stroke-width:2.5;
-  stroke-linecap:round;
-  stroke-linejoin:round;
-  opacity:0;
-  transition:opacity 220ms ease, stroke-dashoffset 600ms ease;
+/* Hide cracks entirely (no drawing) */
+#crackLayer {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none;
 }
 
-/* Shard base style: each shard is an SVG image element that will be masked by a clipPath */
+/* Shard layer remains visible and positioned above the image */
+#shardLayer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 3;
+  overflow: visible;
+  pointer-events: none;
+  transform-origin: center center;
+}
+
+/* Shard base style: each shard is an SVG image element masked by a clipPath */
 .shard {
-  transform-origin:center;
+  transform-origin: center;
   transition: transform 900ms cubic-bezier(.2,.9,.2,1), opacity 900ms linear;
   will-change: transform, opacity;
+  opacity: 0;
 }
 
-/* Progress bar */
+/* Progress bar (keeps style and placement) */
 #progress {
-  position:absolute;
-  right:12px;
-  top:12px;
-  width:140px;
-  height:10px;
-  background:#111111;
-  border-radius:6px;
-  overflow:hidden;
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  width: 140px;
+  height: 10px;
+  background: #111111;
+  border-radius: 6px;
+  overflow: hidden;
+  z-index: 999;
+  pointer-events: none;
 }
 #progressFill {
-  width:0%;
-  height:100%;
-  background:linear-gradient(90deg,#ff6b6b,#ffd56b);
-  transition:width 220ms ease;
+  width: 0%;
+  height: 100%;
+  background: linear-gradient(90deg,#ff6b6b,#ffd56b);
+  transition: width 220ms ease;
 }
 
-/* Controls */
+/* Controls (if you show them, they sit outside the stage area) */
 #controls {
-  margin-top:var(--stage-gap);
-  display:flex;
-  gap:8px;
-  justify-content:flex-end;
+  position: fixed;
+  right: 12px;
+  bottom: 12px;
+  z-index: 1100;
+  display: flex;
+  gap: 8px;
+  pointer-events: auto;
 }
-#controls button { cursor:pointer; padding:6px 10px; border-radius:6px; border:none; background:#222; color:#fff; }
+#controls button {
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: none;
+  background: #222;
+  color: #fff;
+}
+
+/* Utility: centralize stage content when scale < 1 (keeps it centered) */
+body > #stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Accessibility / image fallback if object-fit unsupported */
+#stage img#target[role="presentation"] {
+  object-position: center center;
+}
+
+/* Ensure any text added inside SVG blends well */
+#shardLayer text {
+  font-family: 'Grandia', system-ui, sans-serif;
+  fill: #fff;
+  pointer-events: none;
+}
+
+/* Small responsive tweaks to avoid clipping on very small viewports */
+@media (max-aspect-ratio: 3/4) {
+  #progress { right: 8px; top: 8px; width: 120px; }
+}
