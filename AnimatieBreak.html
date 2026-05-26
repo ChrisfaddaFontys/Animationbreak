@@ -6,18 +6,24 @@
   <title>Break-on-3 Demo</title>
   <link rel="stylesheet" href="AnimatieBreak.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gifshot/0.4.5/gifshot.min.js"></script>
+  <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.3.0/model-viewer.min.js"></script>
 </head>
 <body>
   
   <main id="stage" aria-label="Breakable stage">
+    <!-- Achtergrond die zichtbaar wordt wanneer het doelwit breekt. Pas de src aan naar jouw achtergrondafbeelding. -->
+    <div id="background" class="background-layer"></div>
+
     <!-- The image to break. Replace "your-image.jpg" later with your file name. -->
-    <img id="target" src="NoClick.png" alt="Breakable target"/>
+    <img id="target" src="Visual update 1.png" alt="Breakable target"/>
 
     <!-- SVG overlay for cracks (drawn on clicks 1 and 2) -->
     <svg id="crackLayer" class="overlay" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"></svg>
 
     <!-- SVG group where shard elements (clipped image pieces) will be inserted -->
     <svg id="shardLayer" class="overlay" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"></svg>
+
+    
     
 
   </main>
