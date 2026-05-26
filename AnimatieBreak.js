@@ -1,5 +1,5 @@
 // Basic config
-const MAX_CLICKS = 3;
+const MAX_CLICKS = 4;
 
 // Programmatically generate high-density, interlocking organic micro-shards (10x20 grid with jittered vertices)
 const SHARD_TEMPLATES = (() => {
@@ -7,7 +7,7 @@ const SHARD_TEMPLATES = (() => {
   const cols = 10;
   const rows = 20;
   const jitterFactor = 0.01; // Controls how jagged/organic the shard shapes are
-  
+
   // Create a grid of points with randomized inner intersections
   const points = [];
   for (let r = 0; r <= rows; r++) {
@@ -15,15 +15,15 @@ const SHARD_TEMPLATES = (() => {
     for (let c = 0; c <= cols; c++) {
       let x = c / cols;
       let y = r / rows;
-      
+
       // Jitter the internal vertices but lock the outer borders cleanly to [0,1]
       if (c > 0 && c < cols) x += (Math.random() - 0.5) * jitterFactor;
       if (r > 0 && r < rows) y += (Math.random() - 0.5) * jitterFactor;
-      
+
       points[r][c] = [Math.max(0, Math.min(1, x)), Math.max(0, Math.min(1, y))];
     }
   }
-  
+
   // Assemble the coordinates into interlocking quadrilaterals
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
@@ -46,107 +46,161 @@ document.addEventListener('DOMContentLoaded', () => {
   const progressFill = document.getElementById('progressFill');
 
   let clicks = 0;
-  let shards = []; 
+  let shards = [];
   let imgSize = { w: 0, h: 0 };
+
+let persistentGlitch = null;
+
+function placePersistentGlitch(e) {
+  const container = stage || document.body;
+  const rect = container.getBoundingClientRect();
+  const cursorX = e.clientX - rect.left;
+  const cursorY = e.clientY - rect.top;
+
+  if (persistentGlitch && persistentGlitch.parentNode) return;
+
+  const g = document.createElement('img');
+  g.src = 'GlitchEffect.png';
+  g.style.position = 'absolute';
+  g.style.left = `${cursorX}px`;
+  g.style.top = `${cursorY}px`;
+  g.style.transform = 'translate(-50%, -50%)';
+  g.style.pointerEvents = 'none';
+  g.style.zIndex = 9999;
+
+  container.appendChild(g);
+  persistentGlitch = g;
+
+  g.onload = () => {
+    const gh = g.naturalHeight || g.height;
+    const gw = g.naturalWidth || g.width;
+    let top = cursorY - gh / 2;
+    let left = cursorX - gw / 2;
+    top = Math.max(0, Math.min(top, rect.height - gh));
+    left = Math.max(0, Math.min(left, rect.width - gw));
+    g.style.top = `${top}px`;
+    g.style.left = `${left + (gw/2)}px`;
+    g.style.transform = 'translateX(-50%)';
+  };
+}
+
+function removePersistentGlitch() {
+  if (persistentGlitch && persistentGlitch.parentNode) {
+    persistentGlitch.parentNode.removeChild(persistentGlitch);
+  }
+  persistentGlitch = null;
+}
+
+function spawnClickSparks(e) {
+  const container = stage || document.body;
+  const rect = container.getBoundingClientRect();
+  const cx = e.clientX - rect.left;
+  const cy = e.clientY - rect.top;
+
+  ['spark STICKER.gif', 'SparkingGif.gif'].forEach((src, idx) => {
+    const s = document.createElement('img');
+    s.src = src;
+    s.style.position = 'absolute';
+    s.style.left = `${cx}px`;
+    s.style.top = `${cy}px`;
+    s.style.transform = 'translate(-50%, -50%)';
+    s.style.pointerEvents = 'none';
+    s.style.zIndex = 10000 + idx;
+    s.style.willChange = 'opacity, transform';
+    container.appendChild(s);
+
+    setTimeout(() => {
+      if (s.parentNode) s.parentNode.removeChild(s);
+    }, 900);
+  });
+}
+
+function triggerFullScreenFlash() {
+  const container = stage || document.body;
+  const rect = container.getBoundingClientRect();
+  const flash = document.createElement('div');
+  flash.style.position = 'absolute';
+  flash.style.left = '0';
+  flash.style.top = '0';
+  flash.style.width = rect.width + 'px';
+  flash.style.height = rect.height + 'px';
+  flash.style.background = '#fff';
+  flash.style.opacity = '0';
+  flash.style.pointerEvents = 'none';
+  flash.style.zIndex = 2147483647;
+  flash.style.transition = 'opacity 200ms ease-out';
+  container.appendChild(flash);
+
+  requestAnimationFrame(() => {
+    flash.style.opacity = '0.9';
+    setTimeout(() => {
+      flash.style.opacity = '0';
+      setTimeout(() => { if (flash.parentNode) flash.parentNode.removeChild(flash); }, 220);
+    }, 60);
+  });
+}
+  
+
+  // Background images (cycle through these)
+  const backgroundImages = ['NoClick.png', '1Click.png', '2Clicks.png', '3Clicks.png'];
+  let clickIndex = 0; // start at NoClick
 
   function syncOverlaySize() {
     const rect = img.getBoundingClientRect();
     imgSize.w = img.naturalWidth || rect.width;
     imgSize.h = img.naturalHeight || rect.height;
 
-    crackLayer.setAttribute('viewBox', `0 0 ${imgSize.w} ${imgSize.h}`);
-    shardLayer.setAttribute('viewBox', `0 0 ${imgSize.w} ${imgSize.h}`);
+    if (crackLayer) {
+      crackLayer.setAttribute('viewBox', `0 0 ${imgSize.w} ${imgSize.h}`);
+      crackLayer.setAttribute('width', img.clientWidth);
+      crackLayer.setAttribute('height', img.clientHeight);
+      crackLayer.style.width = img.clientWidth + 'px';
+      crackLayer.style.height = img.clientHeight + 'px';
+    }
 
-    const w = img.clientWidth;
-    const h = img.clientHeight;
-    crackLayer.setAttribute('width', w);
-    crackLayer.setAttribute('height', h);
-    shardLayer.setAttribute('width', w);
-    shardLayer.setAttribute('height', h);
-    crackLayer.style.width = shardLayer.style.width = w + 'px';
-    crackLayer.style.height = shardLayer.style.height = h + 'px';
+    if (shardLayer) {
+      shardLayer.setAttribute('viewBox', `0 0 ${imgSize.w} ${imgSize.h}`);
+      shardLayer.setAttribute('width', img.clientWidth);
+      shardLayer.setAttribute('height', img.clientHeight);
+      shardLayer.style.width = img.clientWidth + 'px';
+      shardLayer.style.height = img.clientHeight + 'px';
+    }
 
-    crackLayer.setAttribute('overflow', 'hidden');
-    crackLayer.style.overflow = 'hidden';
+    if (crackLayer) {
+      crackLayer.setAttribute('overflow', 'hidden');
+      crackLayer.style.overflow = 'hidden';
+      crackLayer.style.position = 'absolute';
+      crackLayer.style.left = shardLayer.style.left = '0';
+      crackLayer.style.top = shardLayer.style.top = '0';
+      crackLayer.style.pointerEvents = shardLayer.style.pointerEvents = 'none';
+    }
 
-    shardLayer.setAttribute('overflow', 'visible');
-    shardLayer.style.overflow = 'visible';
-
-    crackLayer.style.position = 'absolute';
-    shardLayer.style.position = 'absolute';
-    crackLayer.style.left = shardLayer.style.left = '0';
-    crackLayer.style.top = shardLayer.style.top = '0';
-    crackLayer.style.pointerEvents = shardLayer.style.pointerEvents = 'none';
+    if (shardLayer) {
+      shardLayer.setAttribute('overflow', 'visible');
+      shardLayer.style.overflow = 'visible';
+      shardLayer.style.position = 'absolute';
+    }
   }
 
   function updateProgress() {
     const pct = Math.min(100, (clicks / MAX_CLICKS) * 100);
-    if(progressFill) progressFill.style.width = pct + '%';
-  }
-
-  function drawCrack(x, y) {
-    const ns = 'http://www.w3.org/2000/svg';
-    const branches = 8 + Math.floor(Math.random() * 1); 
-    const maxDim = Math.max(imgSize.w, imgSize.h);
-    const baseLen = Math.max(60, maxDim * 0.45); 
-
-    for (let b = 0; b < branches; b++) {
-      const path = document.createElementNS(ns, 'path');
-      const angle = (Math.PI * 2) * (b / branches + (Math.random() - 0.5) * 0.08);
-      const len = baseLen * (0.8 + Math.random() * 0.6); 
-
-      const ex = x + Math.cos(angle) * len;
-      const ey = y + Math.sin(angle) * len;
-      const segments = [];
-      const steps = 4 + Math.floor(Math.random() * 3); 
-      for (let i = 0; i <= steps; i++) {
-        const t = i / steps;
-        const px = x + (ex - x) * t;
-        const py = y + (ey - y) * t;
-        const jitter = (1 - Math.abs(0.5 - t) * 2) * (maxDim * 0.025); 
-        const perp = (Math.random() - 0.5) * jitter;
-        const perpX = -Math.sin(angle) * perp;
-        const perpY = Math.cos(angle) * perp;
-        segments.push([px + perpX, py + perpY]);
-      }
-
-      const d = segments.map((s, i) => (i === 0 ? 'M' : 'L') + s[0] + ' ' + s[1]).join(' ');
-      path.setAttribute('d', d);
-      path.classList.add('crack');
-
-      const approxLen = len * 1.2 + steps * 6;
-      path.style.strokeDasharray = approxLen;
-      path.style.strokeDashoffset = approxLen;
-      path.style.opacity = 0;
-      
-      // Accelerated branch drawing profile
-      path.style.transition = 'stroke-dashoffset 100ms ease-out, opacity 50ms linear';
-
-      crackLayer.appendChild(path);
-
-        requestAnimationFrame(() => {
-        // All branches trigger simultaneously after a tiny 10ms layout delay
-        setTimeout(() => {
-          path.style.opacity = 1;
-          path.style.strokeDashoffset = 0;
-        }, 10); 
-      });
-    }
+    if (progressFill) progressFill.style.width = pct + '%';
   }
 
   function createShards() {
     const ns = 'http://www.w3.org/2000/svg';
-    shardLayer.innerHTML = ''; 
-    
+    if (!shardLayer) return;
+    shardLayer.innerHTML = '';
+
     const defs = document.createElementNS(ns, 'defs');
     shardLayer.appendChild(defs);
-    
+
     const wrapper = document.createElementNS(ns, 'g');
     wrapper.id = 'shardWrapper';
     wrapper.style.transformOrigin = `${imgSize.w / 2}px ${imgSize.h / 2}px`;
     shardLayer.appendChild(wrapper);
 
-    const INFLATION_BASE = 1.03; 
+    const INFLATION_BASE = 1.03;
 
     SHARD_TEMPLATES.forEach((poly, i) => {
       const id = `clip-${i}-${Date.now()}`;
@@ -179,7 +233,7 @@ document.addEventListener('DOMContentLoaded', () => {
       imgElem.setAttribute('height', imgSize.h);
       imgElem.setAttribute('clip-path', `url(#${id})`);
       imgElem.classList.add('shard');
-      
+
       imgElem.style.transformOrigin = `${imgSize.w / 2}px ${imgSize.h / 2}px`;
 
       wrapper.appendChild(imgElem);
@@ -202,10 +256,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const ns = 'http://www.w3.org/2000/svg';
     const swirlGroup = document.createElementNS(ns, 'g');
     swirlGroup.style.transformOrigin = `${imgSize.w / 2}px ${imgSize.h / 2}px`;
-    
+
     const maxR = Math.max(imgSize.w, imgSize.h) * 0.6;
-    
-    for(let i = 0; i < 4; i++) {
+
+    for (let i = 0; i < 4; i++) {
       const ring = document.createElementNS(ns, 'circle');
       ring.setAttribute('cx', imgSize.w / 2);
       ring.setAttribute('cy', imgSize.h / 2);
@@ -216,35 +270,31 @@ document.addEventListener('DOMContentLoaded', () => {
       ring.setAttribute('stroke-dasharray', `${15 + i*20} ${15 + i*10}`);
       swirlGroup.appendChild(ring);
     }
-    
+
     shardLayer.insertBefore(swirlGroup, shardLayer.firstChild);
-    
+
     swirlGroup.style.transform = 'rotate(0deg) scale(1)';
     swirlGroup.style.opacity = '0';
-    
+
     requestAnimationFrame(() => {
       swirlGroup.style.transition = 'transform 1200ms cubic-bezier(0.5, 0, 0.2, 1), opacity 1000ms ease-out';
       swirlGroup.style.transform = 'rotate(-1080deg) scale(0)';
       swirlGroup.style.opacity = '0.7';
     });
-    
+
     setTimeout(() => {
       if (swirlGroup.parentNode) swirlGroup.parentNode.removeChild(swirlGroup);
     }, 1200);
   }
 
-  // Spawns immediately and expands dynamically over 1200ms alongside shard swirl with a native premium glow filter
   function triggerDynamicGreenBall(onComplete) {
     const ns = 'http://www.w3.org/2000/svg';
-    
-    // 1. Grab or create standard defs layout pool to house our filter blueprints
     let defs = shardLayer.querySelector('defs');
     if (!defs) {
       defs = document.createElementNS(ns, 'defs');
       shardLayer.appendChild(defs);
     }
 
-    // 2. Build out our unique, high-intensity reusable glow blueprint wrapper
     const filterId = 'vortexCoreGlow';
     if (!document.getElementById(filterId)) {
       const filter = document.createElementNS(ns, 'filter');
@@ -255,7 +305,7 @@ document.addEventListener('DOMContentLoaded', () => {
       filter.setAttribute('height', '300%');
 
       const blur = document.createElementNS(ns, 'feGaussianBlur');
-      blur.setAttribute('stdDeviation', '100'); 
+      blur.setAttribute('stdDeviation', '100');
       blur.setAttribute('result', 'heavyBlur');
 
       const colorMatrix = document.createElementNS(ns, 'feColorMatrix');
@@ -272,7 +322,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const node1 = document.createElementNS(ns, 'feMergeNode');
       node1.setAttribute('in', 'neonGreenGlow');
       const node2 = document.createElementNS(ns, 'feMergeNode');
-      node2.setAttribute('in', 'SourceGraphic'); 
+      node2.setAttribute('in', 'SourceGraphic');
 
       merge.appendChild(node1);
       merge.appendChild(node2);
@@ -282,27 +332,26 @@ document.addEventListener('DOMContentLoaded', () => {
       defs.appendChild(filter);
     }
 
-    // 3. Construct the Core Ball Element
     const ball = document.createElementNS(ns, 'circle');
     ball.setAttribute('cx', imgSize.w / 2);
     ball.setAttribute('cy', imgSize.h / 2);
-    ball.setAttribute('r', '0'); 
-    
-    ball.setAttribute('fill', '#d1ff00'); 
-    
+    ball.setAttribute('r', '0');
+
+    ball.setAttribute('fill', '#d1ff00');
+
     ball.setAttribute('filter', `url(#${filterId})`);
     ball.style.opacity = '1';
-    
+
     shardLayer.appendChild(ball);
-    ball.getBoundingClientRect(); 
-    
+    ball.getBoundingClientRect();
+
     ball.style.transition = 'r 3000ms cubic-bezier(0.4, 0, 0.2, 1)';
-    
+
     requestAnimationFrame(() => {
       const maxGrownRadius = Math.min(imgSize.w, imgSize.h) * 0.77;
       ball.setAttribute('r', maxGrownRadius);
     });
-    
+
     setTimeout(() => {
       if (ball.parentNode) ball.parentNode.removeChild(ball);
       if (onComplete) onComplete();
@@ -324,37 +373,37 @@ document.addEventListener('DOMContentLoaded', () => {
         const spin = 1080 + (Math.random() * 360);
         node.style.transform = `translate(0px, 0px) rotate(${spin}deg) scale(0)`;
         node.style.opacity = '0';
-      }, index * 4); 
+      }, index * 4);
     });
   }
 
   function triggerFlash(onComplete) {
     const ns = 'http://www.w3.org/2000/svg';
     const flash = document.createElementNS(ns, 'circle');
-    
+
     flash.setAttribute('cx', imgSize.w / 2);
     flash.setAttribute('cy', imgSize.h / 2);
     flash.setAttribute('r', '0');
     flash.setAttribute('fill', '#ffffff');
-    
+
     flash.style.filter = 'drop-shadow(0px 0px 20px rgba(255, 255, 255, 0.8))';
     flash.style.opacity = '1';
-    
+
     shardLayer.appendChild(flash);
     flash.getBoundingClientRect();
-    
+
     const maxRadius = Math.max(imgSize.w, imgSize.h) * 1.5;
     flash.style.transition = 'r 1500ms cubic-bezier(0.1, 0.8, 0.3, 1), opacity 3000ms ease-in';
-    
+
     requestAnimationFrame(() => {
       flash.setAttribute('r', maxRadius);
       flash.style.opacity = '0';
     });
-    
+
     setTimeout(() => {
       if (onComplete) onComplete();
     }, 350);
-    
+
     setTimeout(() => {
       if (flash.parentNode) flash.parentNode.removeChild(flash);
     }, 700);
@@ -364,20 +413,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const ns = 'http://www.w3.org/2000/svg';
     const spotlightGroup = document.createElementNS(ns, 'g');
     spotlightGroup.id = 'rewardSpotlight';
-    
-    const spotSize = Math.min(imgSize.w, imgSize.h) * 2; 
-    const iconSize = Math.min(imgSize.w, imgSize.h) * 1.2; 
+
+    const spotSize = Math.min(imgSize.w, imgSize.h) * 2;
+    const iconSize = Math.min(imgSize.w, imgSize.h) * 1.2;
     const centerX = imgSize.w / 2;
     const centerY = imgSize.h / 2;
 
-    // 1. Grab or create standard defs pool for the premium item glow filter
     let defs = shardLayer.querySelector('defs');
     if (!defs) {
       defs = document.createElementNS(ns, 'defs');
       shardLayer.appendChild(defs);
     }
 
-    // 2. Build the unique high-intensity ITEM GLOW filter blueprint
     const itemFilterId = 'rewardItemGlow';
     if (!document.getElementById(itemFilterId)) {
       const filter = document.createElementNS(ns, 'filter');
@@ -388,12 +435,11 @@ document.addEventListener('DOMContentLoaded', () => {
       filter.setAttribute('height', '200%');
 
       const blur = document.createElementNS(ns, 'feGaussianBlur');
-      blur.setAttribute('stdDeviation', '100'); 
+      blur.setAttribute('stdDeviation', '100');
       blur.setAttribute('result', 'blurOut');
 
       const colorMatrix = document.createElementNS(ns, 'feColorMatrix');
       colorMatrix.setAttribute('type', 'matrix');
-      // Vibrant gold channel configuration rules
       colorMatrix.setAttribute('values', `
         1 0 0 0 1.23 
         0 1 0 0 2 
@@ -406,7 +452,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const node1 = document.createElementNS(ns, 'feMergeNode');
       node1.setAttribute('in', 'coloredGlow');
       const node2 = document.createElementNS(ns, 'feMergeNode');
-      node2.setAttribute('in', 'SourceGraphic'); 
+      node2.setAttribute('in', 'SourceGraphic');
 
       merge.appendChild(node1);
       merge.appendChild(node2);
@@ -416,7 +462,6 @@ document.addEventListener('DOMContentLoaded', () => {
       defs.appendChild(filter);
     }
 
-    // 3. Structural Backdrop Image Layer
     const backdropImg = document.createElementNS(ns, 'image');
     backdropImg.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'vuurwerkshow.gif');
     backdropImg.setAttribute('width', spotSize);
@@ -424,19 +469,16 @@ document.addEventListener('DOMContentLoaded', () => {
     backdropImg.setAttribute('x', centerX - (spotSize / 2));
     backdropImg.setAttribute('y', centerY - (spotSize / 2));
     backdropImg.style.filter = 'drop-shadow(0px 0px 25px rgba(255, 255, 255, 0.85))';
-    
-    // 4. Foreground Reward Gift layer (with our custom glow filter blueprint applied)
+
     const rewardImg = document.createElementNS(ns, 'image');
     rewardImg.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'tennagif.gif');
     rewardImg.setAttribute('width', iconSize);
     rewardImg.setAttribute('height', iconSize);
     rewardImg.setAttribute('x', centerX - (iconSize / 2));
-    rewardImg.setAttribute('y', centerY - (iconSize * 0.55)); 
-    
-    // Hook up our newly created gold glow filter
-    rewardImg.setAttribute('filter', `url(#${itemFilterId})`);
+    rewardImg.setAttribute('y', centerY - (iconSize * 0.55));
 
-    // 5. Text Label Layer
+    rewardImg.setAttribute('filter', `url(#rewardItemGlow)`);
+
     const text = document.createElementNS(ns, 'text');
     text.setAttribute('x', centerX);
     text.setAttribute('y', centerY + (iconSize * 0.55));
@@ -450,20 +492,20 @@ document.addEventListener('DOMContentLoaded', () => {
     text.textContent = 'Je cadeau is onderweg !';
     text.style.filter = 'drop-shadow(0px 0px 8px rgba(255, 255, 255, 0.6))';
 
-    spotlightGroup.appendChild(backdropImg); 
-    spotlightGroup.appendChild(rewardImg); 
-    text.style.pointerEvents = 'none'; // Ensure text elements maintain transparent pointer safety overlays
+    spotlightGroup.appendChild(backdropImg);
+    spotlightGroup.appendChild(rewardImg);
+    text.style.pointerEvents = 'none';
     spotlightGroup.appendChild(text);
-    
+
     spotlightGroup.style.opacity = '0';
     spotlightGroup.style.transformOrigin = `${imgSize.w / 2}px ${imgSize.h / 2}px`;
     spotlightGroup.style.transform = 'scale(0.65)';
-    
+
     shardLayer.appendChild(spotlightGroup);
-    spotlightGroup.getBoundingClientRect(); 
-    
+    spotlightGroup.getBoundingClientRect();
+
     spotlightGroup.style.transition = 'transform 3000ms cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 500ms ease-out';
-    
+
     requestAnimationFrame(() => {
       spotlightGroup.style.opacity = '1';
       spotlightGroup.style.transform = 'scale(1)';
@@ -479,22 +521,22 @@ document.addEventListener('DOMContentLoaded', () => {
       const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
       const URL = window.URL || window.webkitURL || window;
       const blobURL = URL.createObjectURL(svgBlob);
-      
+
       const captureCanvas = document.createElement('canvas');
       captureCanvas.width = imgSize.w;
       captureCanvas.height = imgSize.h;
       const ctx = captureCanvas.getContext('2d');
-      
+
       const renderVehicle = new Image();
       renderVehicle.onload = function() {
         ctx.clearRect(0, 0, imgSize.w, imgSize.h);
         ctx.drawImage(renderVehicle, 0, 0);
         const dataFrameUrl = captureCanvas.toDataURL('image/png');
-        
+
         gifshot.createGIF({
           gifWidth: imgSize.w,
           gifHeight: imgSize.h,
-          transparent: 'rgba(0,0,0,0)', 
+          transparent: 'rgba(0,0,0,0)',
           images: [dataFrameUrl],
           interval: 0.1
         }, function (obj) {
@@ -506,18 +548,18 @@ document.addEventListener('DOMContentLoaded', () => {
         });
       };
       renderVehicle.src = blobURL;
-    }, 800); 
+    }, 800);
   }
 
   function resetShards() {
-    shardLayer.innerHTML = '';
+    if (shardLayer) shardLayer.innerHTML = '';
     shards = [];
-    crackLayer.innerHTML = '';
+    if (crackLayer) crackLayer.innerHTML = '';
   }
 
   function replayShards() {
     if (!shards.length) return;
-    
+
     const wrapper = document.getElementById('shardWrapper');
     if (wrapper) {
       wrapper.style.transition = 'none';
@@ -537,26 +579,43 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function shatter() {
     createShards();
-    crackLayer.innerHTML = '';
+    if (crackLayer) crackLayer.innerHTML = '';
     img.style.visibility = 'hidden';
-    
+
     requestAnimationFrame(() => {
       animateShards();
-      
+
       setTimeout(() => {
         triggerBlackHole();
-        
+
         triggerDynamicGreenBall(() => {
           triggerFlash(() => {
             triggerRewardSpotlight();
           });
         });
-        
+
       }, 1000);
     });
   }
 
+  function swapBackgroundInstant(url) {
+    const pre = new Image();
+    function apply() {
+      img.style.transition = 'none';
+      img.src = url;
+      if (img.complete) syncOverlaySize();
+      img.addEventListener('load', function onLoad() {
+        img.removeEventListener('load', onLoad);
+        syncOverlaySize();
+      });
+    }
+    pre.onload = apply;
+    pre.src = url;
+    if (pre.complete) apply();
+  }
+
   function handlePointer(e) {
+    // Calculate pointer coordinates (kept for potential later use)
     const rect = img.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * imgSize.w;
     const y = ((e.clientY - rect.top) / rect.height) * imgSize.h;
@@ -564,12 +623,31 @@ document.addEventListener('DOMContentLoaded', () => {
     clicks = Math.min(MAX_CLICKS, clicks + 1);
     updateProgress();
 
-    if (clicks < MAX_CLICKS) {
-      drawCrack(x, y);
-    } else {
-      shatter();
-      stage.removeEventListener('pointerdown', handlePointer);
+    spawnClickSparks(e);
+    triggerFullScreenFlash();
+
+    // Cycle backgrounds until last image is visible.
+    if (clickIndex < backgroundImages.length - 1) {
+      clickIndex += 1;
+      swapBackgroundInstant(backgroundImages[clickIndex]);
+
+      placePersistentGlitch(e);
+      if (clickIndex === backgroundImages.length - 1) {
+        removePersistentGlitch();
+      }
+
+      return;
     }
+
+    // If the final background is already visible and user clicks, remove glitch then shatter.
+    removePersistentGlitch();
+    shatter();
+    stage.removeEventListener('pointerdown', handlePointer);
+  }
+
+  // Ensure initial background is set
+  if (img) {
+    img.src = backgroundImages[clickIndex];
   }
 
   if (img.complete) {
@@ -579,6 +657,5 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   window.addEventListener('resize', syncOverlaySize);
-  stage.addEventListener('pointerdown', handlePointer);
+  if (stage) stage.addEventListener('pointerdown', handlePointer);
 });
-
