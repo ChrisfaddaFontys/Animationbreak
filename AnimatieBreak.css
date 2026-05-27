@@ -186,7 +186,10 @@ body.warning-dismissed #ftb-overlay.is-clear {
   top: 0;
   width: 100%;
   height: 100%;
-  background-color: black;
+  background-color: black; /* Fallback kleur voor als de afbeelding nog laadt */
+  background-image: url('ledscherm filter.png'); /* Vervang dit met de juiste bestandsnaam */
+  background-size: cover;
+  background-position: center;
   z-index: 0;
 }
 
