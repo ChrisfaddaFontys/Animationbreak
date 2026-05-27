@@ -52,6 +52,13 @@ document.addEventListener('DOMContentLoaded', () => {
   tapSounds.forEach(s => { s.preload = 'auto'; s.volume = 0.85; });
   const finalHit = new Audio('lordsonny-glass-cinematic-hit-161212.mp3');
   finalHit.preload = 'auto'; finalHit.volume = 1.0;
+  const whooshSound = new Audio('whoosh.mp3');
+  whooshSound.preload = 'auto'; whooshSound.volume = 1.0;
+  const boomSound = new Audio('boom.mp3');
+  boomSound.preload = 'auto'; boomSound.volume = 1.0;
+  const sparkleSound = new Audio('sparklenoise.mp3');
+  sparkleSound.preload = 'auto'; sparkleSound.volume = 1.0;
+  sparkleSound.loop = true;
   const warningScreen = document.getElementById('warning-screen');
   const warningContinue = document.getElementById('warning-continue');
   const ftbOverlay = document.getElementById('ftb-overlay');
@@ -96,6 +103,22 @@ document.addEventListener('DOMContentLoaded', () => {
   function enableExperience() {
     if (experienceActive) return;
     experienceActive = true;
+
+    // Ontgrendel alle audio op de eerste klik, zodat ze later in de vertraagde animaties probleemloos afspelen
+    const allSounds = [...tapSounds, finalHit, whooshSound, boomSound, sparkleSound];
+    allSounds.forEach(snd => {
+      const originalVol = snd.volume;
+      snd.volume = 0; // Speel onhoorbaar af
+      const playPromise = snd.play();
+      if (playPromise !== undefined) {
+        playPromise.then(() => {
+          snd.pause();
+          snd.currentTime = 0;
+          snd.volume = originalVol; // Herstel het volume voor later
+        }).catch(() => { snd.volume = originalVol; });
+      }
+    });
+
     document.body.classList.remove('warning-active');
     if (stage) stage.addEventListener('pointerdown', handlePointer);
   }
@@ -374,6 +397,13 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function triggerSwirlRings() {
+    try {
+      whooshSound.currentTime = 0;
+      whooshSound.play();
+    } catch (err) {
+      // ignore
+    }
+
     const ns = 'http://www.w3.org/2000/svg';
     const swirlGroup = document.createElementNS(ns, 'g');
     swirlGroup.style.transformOrigin = `${imgSize.w / 2}px ${imgSize.h / 2}px`;
@@ -501,6 +531,13 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function triggerFlash(onComplete) {
+    try {
+      boomSound.currentTime = 0;
+      boomSound.play();
+    } catch (err) {
+      // ignore
+    }
+
     const ns = 'http://www.w3.org/2000/svg';
     const flash = document.createElementNS(ns, 'circle');
 
@@ -533,6 +570,13 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function triggerRewardSpotlight() {
+    try {
+      sparkleSound.currentTime = 0;
+      sparkleSound.play();
+    } catch (err) {
+      // ignore
+    }
+
     const ns = 'http://www.w3.org/2000/svg';
     const spotlightGroup = document.createElementNS(ns, 'g');
     spotlightGroup.id = 'rewardSpotlight';
