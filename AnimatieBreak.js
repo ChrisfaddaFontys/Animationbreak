@@ -44,12 +44,68 @@ document.addEventListener('DOMContentLoaded', () => {
   const crackLayer = document.getElementById('crackLayer');
   const shardLayer = document.getElementById('shardLayer');
   const progressFill = document.getElementById('progressFill');
+  const warningScreen = document.getElementById('warning-screen');
+  const warningContinue = document.getElementById('warning-continue');
+  const ftbOverlay = document.getElementById('ftb-overlay');
 
   let clicks = 0;
   let shards = [];
   let imgSize = { w: 0, h: 0 };
+  let experienceActive = false;
+  let warningDismissed = false;
 
   let persistentGlitch = null;
+
+  function hideWarningScreen() {
+    if (warningDismissed) return;
+    warningDismissed = true;
+
+    document.body.classList.add('warning-dismissed');
+    if (warningScreen) {
+      warningScreen.classList.add('is-hiding');
+      warningScreen.classList.remove('is-visible');
+    }
+
+    if (ftbOverlay) {
+      ftbOverlay.classList.add('is-clear');
+      setTimeout(() => {
+        ftbOverlay.style.display = 'none';
+      }, 320);
+    }
+
+    window.removeEventListener('keydown', handleWarningDismiss);
+    if (warningContinue) {
+      warningContinue.removeEventListener('click', hideWarningScreen);
+    }
+
+    enableExperience();
+  }
+
+  function handleWarningDismiss() {
+    hideWarningScreen();
+  }
+
+  function enableExperience() {
+    if (experienceActive) return;
+    experienceActive = true;
+    document.body.classList.remove('warning-active');
+    if (stage) stage.addEventListener('pointerdown', handlePointer);
+  }
+
+  function showWarningScreen() {
+    document.body.classList.add('warning-active');
+    if (warningScreen) {
+      warningScreen.classList.add('is-visible');
+      warningScreen.classList.remove('is-hiding');
+    }
+
+    if (warningContinue) {
+      warningContinue.addEventListener('click', hideWarningScreen);
+      warningContinue.focus({ preventScroll: true });
+    }
+
+    window.addEventListener('keydown', handleWarningDismiss, { once: true });
+  }
 
   function placePersistentGlitch(e) {
     const container = stage || document.body;
@@ -748,6 +804,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function handlePointer(e) {
+    if (!experienceActive) return;
+
     // Calculate pointer coordinates (kept for potential later use)
     const rect = img.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * imgSize.w;
@@ -794,5 +852,5 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   window.addEventListener('resize', syncOverlaySize);
-  if (stage) stage.addEventListener('pointerdown', handlePointer);
+  showWarningScreen();
 });

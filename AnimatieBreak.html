@@ -9,6 +9,19 @@
   <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.3.0/model-viewer.min.js"></script>
 </head>
 <body>
+  <div id="ftb-overlay" aria-hidden="true"></div>
+
+  <div id="warning-screen" role="dialog" aria-modal="true" aria-labelledby="warning-title">
+    <div id="warning-backdrop"></div>
+    <div id="warning-box">
+      <div id="warning-title">Warning: photosensitivity</div>
+      <div id="warning-body">
+        This experience contains flashing lights, visual effects, and rapid animations.<br />
+        Viewer discretion is advised for people with epilepsy or sensitivity to visual stimuli.
+      </div>
+      <button id="warning-continue" type="button">Click or press any key to continue</button>
+    </div>
+  </div>
   
   <main id="stage" aria-label="Breakable stage">
     <!-- Achtergrond die zichtbaar wordt wanneer het doelwit breekt. Pas de src aan naar jouw achtergrondafbeelding. -->
