@@ -155,32 +155,26 @@ document.addEventListener('DOMContentLoaded', () => {
     const cursorY = e.clientY - rect.top;
 
     const finalImg = document.createElement('img');
-    finalImg.src = 'crackedglass3.png'; // Pas deze bestandsnaam aan naar jouw afbeelding!
+    finalImg.src = 'blackcrack.png'; // Pas deze bestandsnaam aan naar jouw afbeelding!
     finalImg.style.position = 'absolute';
     finalImg.style.left = `${cursorX}px`;
     finalImg.style.top = `${cursorY}px`;
     
-    // Begin klein met scale(0) voor het zoom-effect
     finalImg.style.transformOrigin = 'center center'; // Zorgt dat de zoom exact vanuit het middelpunt start
-    finalImg.style.transform = 'translate(-50%, -50%) scale(0)'; 
-    // Voeg de zoom-in animatie (transitie) toe
-    finalImg.style.transition = 'transform 1000ms cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+    // Begin direct op ware grootte om het "pop" effect te vermijden
+    finalImg.style.transform = 'translate(-50%, -50%) scale(1)'; 
     finalImg.style.pointerEvents = 'none';
-    finalImg.style.zIndex = 4; // Plaats hem boven de shardLayer (z-index 3)
+    finalImg.style.zIndex = 2; // Plaats hem onder de shardLayer, zodat de animaties er bovenop vallen
 
     // Pas de grootte hier aan. Je kunt pixels ('300px'), of view width ('30vw') gebruiken.
-    finalImg.style.width = '1000px';
+    finalImg.style.width = '1200px';
 
     container.appendChild(finalImg);
 
-    // Activeer de animatie zodra de afbeelding in de DOM is geladen
     requestAnimationFrame(() => {
-      finalImg.style.transform = 'translate(-50%, -50%) scale(1)';
-
-      // Blijf na de snelle 'pop' langzaam verder inzoomen naar het middelpunt
       setTimeout(() => {
-        finalImg.style.transition = 'transform 4s ease-in'; // 4 seconden lang inzoomen
-        finalImg.style.transform = 'translate(-50%, -50%) scale(15)'; // Zoom veel dieper in (pas getal aan naar wens)
+        finalImg.style.transition = 'transform 1.6s ease-in'; // 4 seconden lang inzoomen
+        finalImg.style.transform = 'translate(-50%, -50%) scale(32)'; // Verhoogd naar 30 voor een diepere zoom
       }, 900); // Wacht tot de eerste animatie (300ms) klaar is
     });
   }
@@ -255,13 +249,13 @@ document.addEventListener('DOMContentLoaded', () => {
       setTimeout(() => {
         flash.style.opacity = '0';
         setTimeout(() => { if (flash.parentNode) flash.parentNode.removeChild(flash); }, 2200); // Verwijder nadat de transitie klaar is
-      }, 200); // Blijft iets langer (200ms) op volle sterkte fel wit staan
+      }, 400); // Blijft iets langer (200ms) op volle sterkte fel wit staan
     });
   }
 
 
   // Background images (cycle through these)
-  const backgroundImages = ['Visual update 1.png', '1Click.png', '2Clicks.png', '3Clicks.png',];
+  const backgroundImages = ['NoClick.png', '1Click.png', '2Clicks.png', '3Clicks.png',];
   let clickIndex = 0; // start at NoClick
 
   function syncOverlaySize() {
@@ -385,7 +379,7 @@ document.addEventListener('DOMContentLoaded', () => {
       ring.setAttribute('r', maxR * (0.25 + (i * 0.2)));
       ring.setAttribute('fill', 'none');
       ring.setAttribute('stroke', '#00ff66');
-      ring.setAttribute('stroke-width', 3 - (i * 0.5));
+      ring.setAttribute('stroke-width', 25 - (i * 1.5));
       ring.setAttribute('stroke-dasharray', `${15 + i * 20} ${15 + i * 10}`);
       swirlGroup.appendChild(ring);
     }
@@ -396,14 +390,14 @@ document.addEventListener('DOMContentLoaded', () => {
     swirlGroup.style.opacity = '0';
 
     requestAnimationFrame(() => {
-      swirlGroup.style.transition = 'transform 1200ms cubic-bezier(0.5, 0, 0.2, 1), opacity 1000ms ease-out';
+      swirlGroup.style.transition = 'transform 1000ms cubic-bezier(0.5, 0, 0.2, 1), opacity 1000ms ease-out';
       swirlGroup.style.transform = 'rotate(-1080deg) scale(0)';
       swirlGroup.style.opacity = '0.7';
     });
 
     setTimeout(() => {
       if (swirlGroup.parentNode) swirlGroup.parentNode.removeChild(swirlGroup);
-    }, 400);
+    }, 50);
   }
 
   function triggerDynamicGreenBall(onComplete) {
@@ -464,17 +458,17 @@ document.addEventListener('DOMContentLoaded', () => {
     shardLayer.appendChild(ball);
     ball.getBoundingClientRect();
 
-    ball.style.transition = 'r 3000ms cubic-bezier(0.4, 0, 0.2, 1)';
+    ball.style.transition = 'r 5000ms cubic-bezier(0.4, 0, 0.2, 1)';
 
     requestAnimationFrame(() => {
-      const maxGrownRadius = Math.min(imgSize.w, imgSize.h) * 0.77;
+      const maxGrownRadius = Math.min(imgSize.w, imgSize.h) * 1;
       ball.setAttribute('r', maxGrownRadius);
     });
 
     setTimeout(() => {
       if (ball.parentNode) ball.parentNode.removeChild(ball);
       if (onComplete) onComplete();
-    }, 1250);
+    }, 1500);
   }
 
 
@@ -582,14 +576,14 @@ document.addEventListener('DOMContentLoaded', () => {
       const animFy = document.createElementNS(ns, 'animate');
       animFy.setAttribute('attributeName', 'fy');
       animFy.setAttribute('values', '40%; 60%; 40%');
-      animFy.setAttribute('dur', '5.5s'); // Iets andere tijdsduur voor een organisch en onregelmatig patroon
+      animFy.setAttribute('dur', '7s'); // Iets andere tijdsduur voor een organisch en onregelmatig patroon
       animFy.setAttribute('repeatCount', 'indefinite');
 
       // Animatie voor de grootte (radius) zodat de gloed lichtjes pulseert / ademt
       const animR = document.createElementNS(ns, 'animate');
       animR.setAttribute('attributeName', 'r');
-      animR.setAttribute('values', '25%; 40%; 25%'); // Verlaag de percentages hier om de hele gradient kleiner te maken
-      animR.setAttribute('dur', '3s');
+      animR.setAttribute('values', '15%; 28%; 15%'); // Verlaag de percentages hier om de hele gradient kleiner te maken
+      animR.setAttribute('dur', '7s');
       animR.setAttribute('repeatCount', 'indefinite');
 
       radialGrad.appendChild(animFx);
@@ -603,6 +597,37 @@ document.addEventListener('DOMContentLoaded', () => {
       defs.appendChild(radialGrad);
     }
 
+    // --- TWEEDE GRADIENT TOEVOEGEN ---
+    const gradId2 = 'rewardSpotlightGradient2';
+    if (!document.getElementById(gradId2)) {
+      const radialGrad2 = document.createElementNS(ns, 'radialGradient');
+      radialGrad2.setAttribute('id', gradId2);
+      radialGrad2.setAttribute('cx', '50%');
+      radialGrad2.setAttribute('cy', '50%');
+      
+      const stop1_2 = document.createElementNS(ns, 'stop');
+      stop1_2.setAttribute('offset', '0%');
+      stop1_2.setAttribute('stop-color', '#a3edad'); // Heldere witte/lichte kern
+      stop1_2.setAttribute('stop-opacity', '0.7');
+
+      const stop2_2 = document.createElementNS(ns, 'stop');
+      stop2_2.setAttribute('offset', '100%');
+      stop2_2.setAttribute('stop-color', '#75f0a6'); // Neon groene rand
+      stop2_2.setAttribute('stop-opacity', '0');
+
+      // Pulserende animatie voor de tweede gradient (sneller en ander bereik)
+      const animR2 = document.createElementNS(ns, 'animate');
+      animR2.setAttribute('attributeName', 'r');
+      animR2.setAttribute('values', '50%; 10%; 50%'); 
+      animR2.setAttribute('dur', '7s'); // Pulseert sneller dan de hoofdgradient (4s vs 7s)
+      animR2.setAttribute('repeatCount', 'indefinite');
+
+      radialGrad2.appendChild(animR2);
+      radialGrad2.appendChild(stop1_2);
+      radialGrad2.appendChild(stop2_2);
+      defs.appendChild(radialGrad2);
+    }
+
     const backdropImg = document.createElementNS(ns, 'circle');
     backdropImg.setAttribute('cx', centerX);
     backdropImg.setAttribute('cy', centerY);
@@ -610,10 +635,18 @@ document.addEventListener('DOMContentLoaded', () => {
     backdropImg.setAttribute('fill', `url(#${gradId})`);
     backdropImg.style.filter = 'drop-shadow(0px 0px 25px rgba(255, 255, 255, 0.85))';
 
+    // Tweede cirkel voor de tweede gradient (overlappend)
+    const backdropImg2 = document.createElementNS(ns, 'circle');
+    backdropImg2.setAttribute('cx', centerX);
+    backdropImg2.setAttribute('cy', centerY);
+    backdropImg2.setAttribute('r', spotSize / 2);
+    backdropImg2.setAttribute('fill', `url(#${gradId2})`);
+    backdropImg2.style.mixBlendMode = 'screen'; // Zorgt voor een oplichtende kleurmenging met de achtergrond
+
     // Voeg een GIF toe achter het 3D-model, maar voor de gradient
     const gifBackground = document.createElementNS(ns, 'image');
     gifBackground.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'sparky.gif'); // Pas de bestandsnaam aan naar jouw GIF!
-    const gifSize = iconSize * 0.8; // Pas '1.5' aan om de GIF groter of kleiner te maken ten opzichte van het 3D model
+    const gifSize = iconSize * 0.7; // Pas '1.5' aan om de GIF groter of kleiner te maken ten opzichte van het 3D model
     gifBackground.setAttribute('x', centerX - (gifSize / 2));
     gifBackground.setAttribute('y', centerY - (gifSize / 1.5));
     gifBackground.setAttribute('width', gifSize);
@@ -662,6 +695,7 @@ document.addEventListener('DOMContentLoaded', () => {
     text.style.filter = 'drop-shadow(0px 0px 8px rgb(17, 14, 14))';
 
     spotlightGroup.appendChild(backdropImg);
+    spotlightGroup.appendChild(backdropImg2); // Voeg de tweede gradientlaag toe
     spotlightGroup.appendChild(gifBackground); // Plaats de GIF tussen de backdrop en het 3D model in
     spotlightGroup.appendChild(foreignObject);
     text.style.pointerEvents = 'none';
@@ -783,7 +817,7 @@ document.addEventListener('DOMContentLoaded', () => {
             triggerRewardSpotlight();
           });
         });
-      }, 3300); // Nu speelt dit alles af op 2000ms (halverwege de zoom)
+      }, 1400); // Verlaag dit getal (was 3300) om de animaties eerder te starten
     });
   }
 
