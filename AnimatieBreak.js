@@ -99,7 +99,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const cursorY = e.clientY - rect.top;
 
     const finalImg = document.createElement('img');
-    finalImg.src = 'blackcrack.png'; // Pas deze bestandsnaam aan naar jouw afbeelding!
+    finalImg.src = 'blackcracklive.png'; // Pas deze bestandsnaam aan naar jouw afbeelding!
     finalImg.style.position = 'absolute';
     finalImg.style.left = `${cursorX}px`;
     finalImg.style.top = `${cursorY}px`;
@@ -111,7 +111,7 @@ document.addEventListener('DOMContentLoaded', () => {
     finalImg.style.zIndex = 2; // Plaats hem onder de shardLayer, zodat de animaties er bovenop vallen
 
     // Pas de grootte hier aan. Je kunt pixels ('300px'), of view width ('30vw') gebruiken.
-    finalImg.style.width = '1200px';
+    finalImg.style.width = '800px';
 
     container.appendChild(finalImg);
 
