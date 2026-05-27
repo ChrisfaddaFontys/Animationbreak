@@ -44,6 +44,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const crackLayer = document.getElementById('crackLayer');
   const shardLayer = document.getElementById('shardLayer');
   const progressFill = document.getElementById('progressFill');
+  // Audio for hammer taps and final cinematic hit
+  const tapSounds = [
+    new Audio('glas crack 2.mp3'),
+    new Audio('glas crack 3.mp3')
+  ];
+  tapSounds.forEach(s => { s.preload = 'auto'; s.volume = 0.85; });
+  const finalHit = new Audio('lordsonny-glass-cinematic-hit-161212.mp3');
+  finalHit.preload = 'auto'; finalHit.volume = 1.0;
   const warningScreen = document.getElementById('warning-screen');
   const warningContinue = document.getElementById('warning-continue');
   const ftbOverlay = document.getElementById('ftb-overlay');
@@ -814,6 +822,17 @@ document.addEventListener('DOMContentLoaded', () => {
     clicks = Math.min(MAX_CLICKS, clicks + 1);
     updateProgress();
 
+    // play hammer tap sound for non-final clicks (only if experience is active and stage is clicked)
+    if (clickIndex < backgroundImages.length - 1) {
+      try {
+        const snd = tapSounds[clickIndex % tapSounds.length];
+        snd.currentTime = 0;
+        snd.play();
+      } catch (err) {
+        // autoplay or play errors are ignored
+      }
+    }
+
     spawnClickSparks(e);
     triggerFullScreenFlash();
 
@@ -832,6 +851,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // If the final background is already visible and user clicks, remove glitch then shatter.
     removePersistentGlitch();
+
+    // Play cinematic final hit (before final visuals)
+    try {
+      finalHit.currentTime = 0;
+      finalHit.play();
+    } catch (err) {
+      // ignore
+    }
 
     placeFinalImage(e); // Plaats de afbeelding exact op de klik
     triggerFinalFlash(); // Voeg de speciale extra witte flits toe
