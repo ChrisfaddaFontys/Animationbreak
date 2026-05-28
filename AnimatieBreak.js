@@ -4,9 +4,9 @@ const MAX_CLICKS = 4;
 // Programmatically generate high-density, interlocking organic micro-shards (10x20 grid with jittered vertices)
 const SHARD_TEMPLATES = (() => {
   const templates = [];
-  const cols = 10;
+  const cols = 5;
   const rows = 20;
-  const jitterFactor = 0.01; // Controls how jagged/organic the shard shapes are
+  const jitterFactor = 0.2; // Controls how jagged/organic the shard shapes are
 
   // Create a grid of points with randomized inner intersections
   const points = [];
@@ -29,9 +29,9 @@ const SHARD_TEMPLATES = (() => {
     for (let c = 0; c < cols; c++) {
       templates.push([
         points[r][c],       // Top-Left
-        points[r][c+1],     // Top-Right
-        points[r+1][c+1],   // Bottom-Right
-        points[r+1][c]      // Bottom-Left
+        points[r][c + 1],     // Top-Right
+        points[r + 1][c + 1],   // Bottom-Right
+        points[r + 1][c]      // Bottom-Left
       ]);
     }
   }
@@ -44,105 +44,249 @@ document.addEventListener('DOMContentLoaded', () => {
   const crackLayer = document.getElementById('crackLayer');
   const shardLayer = document.getElementById('shardLayer');
   const progressFill = document.getElementById('progressFill');
+  // Audio for hammer taps and final cinematic hit
+  const tapSounds = [
+    new Audio('glas crack 2.mp3'),
+    new Audio('glas crack 3.mp3')
+  ];
+  tapSounds.forEach(s => { s.preload = 'auto'; s.volume = 0.85; });
+  const finalHit = new Audio('lordsonny-glass-cinematic-hit-161212.mp3');
+  finalHit.preload = 'auto'; finalHit.volume = 1.0;
+  const whooshSound = new Audio('whoosh.mp3');
+  whooshSound.preload = 'auto'; whooshSound.volume = 1.0;
+  const boomSound = new Audio('boom.mp3');
+  boomSound.preload = 'auto'; boomSound.volume = 1.0;
+  const sparkleSound = new Audio('sparklenoise.mp3');
+  sparkleSound.preload = 'auto'; sparkleSound.volume = 1.0;
+  sparkleSound.loop = true;
+  const warningScreen = document.getElementById('warning-screen');
+  const warningContinue = document.getElementById('warning-continue');
+  const ftbOverlay = document.getElementById('ftb-overlay');
 
   let clicks = 0;
   let shards = [];
   let imgSize = { w: 0, h: 0 };
+  let experienceActive = false;
+  let warningDismissed = false;
 
-let persistentGlitch = null;
+  let persistentGlitch = null;
 
-function placePersistentGlitch(e) {
-  const container = stage || document.body;
-  const rect = container.getBoundingClientRect();
-  const cursorX = e.clientX - rect.left;
-  const cursorY = e.clientY - rect.top;
+  function hideWarningScreen() {
+    if (warningDismissed) return;
+    warningDismissed = true;
 
-  if (persistentGlitch && persistentGlitch.parentNode) return;
+    document.body.classList.add('warning-dismissed');
+    if (warningScreen) {
+      warningScreen.classList.add('is-hiding');
+      warningScreen.classList.remove('is-visible');
+    }
 
-  const g = document.createElement('img');
-  g.src = 'GlitchEffect.png';
-  g.style.position = 'absolute';
-  g.style.left = `${cursorX}px`;
-  g.style.top = `${cursorY}px`;
-  g.style.transform = 'translate(-50%, -50%)';
-  g.style.pointerEvents = 'none';
-  g.style.zIndex = 9999;
+    if (ftbOverlay) {
+      ftbOverlay.classList.add('is-clear');
+      setTimeout(() => {
+        ftbOverlay.style.display = 'none';
+      }, 320);
+    }
 
-  container.appendChild(g);
-  persistentGlitch = g;
+    window.removeEventListener('keydown', handleWarningDismiss);
+    if (warningContinue) {
+      warningContinue.removeEventListener('click', hideWarningScreen);
+    }
 
-  g.onload = () => {
-    const gh = g.naturalHeight || g.height;
-    const gw = g.naturalWidth || g.width;
-    let top = cursorY - gh / 2;
-    let left = cursorX - gw / 2;
-    top = Math.max(0, Math.min(top, rect.height - gh));
-    left = Math.max(0, Math.min(left, rect.width - gw));
-    g.style.top = `${top}px`;
-    g.style.left = `${left + (gw/2)}px`;
-    g.style.transform = 'translateX(-50%)';
-  };
-}
-
-function removePersistentGlitch() {
-  if (persistentGlitch && persistentGlitch.parentNode) {
-    persistentGlitch.parentNode.removeChild(persistentGlitch);
+    enableExperience();
   }
-  persistentGlitch = null;
-}
 
-function spawnClickSparks(e) {
-  const container = stage || document.body;
-  const rect = container.getBoundingClientRect();
-  const cx = e.clientX - rect.left;
-  const cy = e.clientY - rect.top;
+  function handleWarningDismiss() {
+    hideWarningScreen();
+  }
 
-  ['spark STICKER.gif', 'SparkingGif.gif'].forEach((src, idx) => {
-    const s = document.createElement('img');
-    s.src = src;
-    s.style.position = 'absolute';
-    s.style.left = `${cx}px`;
-    s.style.top = `${cy}px`;
-    s.style.transform = 'translate(-50%, -50%)';
-    s.style.pointerEvents = 'none';
-    s.style.zIndex = 10000 + idx;
-    s.style.willChange = 'opacity, transform';
-    container.appendChild(s);
+  function enableExperience() {
+    if (experienceActive) return;
+    experienceActive = true;
 
-    setTimeout(() => {
-      if (s.parentNode) s.parentNode.removeChild(s);
-    }, 900);
-  });
-}
+    // Ontgrendel alle audio op de eerste klik, zodat ze later in de vertraagde animaties probleemloos afspelen
+    const allSounds = [...tapSounds, finalHit, whooshSound, boomSound, sparkleSound];
+    allSounds.forEach(snd => {
+      const originalVol = snd.volume;
+      snd.volume = 0; // Speel onhoorbaar af
+      const playPromise = snd.play();
+      if (playPromise !== undefined) {
+        playPromise.then(() => {
+          snd.pause();
+          snd.currentTime = 0;
+          snd.volume = originalVol; // Herstel het volume voor later
+        }).catch(() => { snd.volume = originalVol; });
+      }
+    });
 
-function triggerFullScreenFlash() {
-  const container = stage || document.body;
-  const rect = container.getBoundingClientRect();
-  const flash = document.createElement('div');
-  flash.style.position = 'absolute';
-  flash.style.left = '0';
-  flash.style.top = '0';
-  flash.style.width = rect.width + 'px';
-  flash.style.height = rect.height + 'px';
-  flash.style.background = '#fff';
-  flash.style.opacity = '0';
-  flash.style.pointerEvents = 'none';
-  flash.style.zIndex = 2147483647;
-  flash.style.transition = 'opacity 200ms ease-out';
-  container.appendChild(flash);
+    document.body.classList.remove('warning-active');
+    if (stage) stage.addEventListener('pointerdown', handlePointer);
+  }
 
-  requestAnimationFrame(() => {
-    flash.style.opacity = '0.9';
-    setTimeout(() => {
-      flash.style.opacity = '0';
-      setTimeout(() => { if (flash.parentNode) flash.parentNode.removeChild(flash); }, 220);
-    }, 60);
-  });
-}
-  
+  function showWarningScreen() {
+    document.body.classList.add('warning-active');
+    if (warningScreen) {
+      warningScreen.classList.add('is-visible');
+      warningScreen.classList.remove('is-hiding');
+    }
+
+    if (warningContinue) {
+      warningContinue.addEventListener('click', hideWarningScreen);
+      warningContinue.focus({ preventScroll: true });
+    }
+
+    window.addEventListener('keydown', handleWarningDismiss, { once: true });
+  }
+
+  function placePersistentGlitch(e) {
+    const container = stage || document.body;
+    const rect = container.getBoundingClientRect();
+    const cursorX = e.clientX - rect.left;
+    const cursorY = e.clientY - rect.top;
+
+    if (persistentGlitch && persistentGlitch.parentNode) return;
+
+    const g = document.createElement('img');
+    g.src = 'GlitchEffect.png';
+    g.style.position = 'absolute';
+    g.style.left = `${cursorX}px`;
+    g.style.top = `${cursorY}px`;
+    g.style.transform = 'translate(-50%, -50%)';
+    g.style.pointerEvents = 'none';
+    g.style.zIndex = 9999;
+
+    container.appendChild(g);
+    persistentGlitch = g;
+
+    g.onload = () => {
+      const gh = g.naturalHeight || g.height;
+      const gw = g.naturalWidth || g.width;
+      let top = cursorY - gh / 2;
+      let left = cursorX - gw / 2;
+      top = Math.max(0, Math.min(top, rect.height - gh));
+      left = Math.max(0, Math.min(left, rect.width - gw));
+      g.style.top = `${top}px`;
+      g.style.left = `${left + (gw / 2)}px`;
+      g.style.transform = 'translateX(-50%)';
+    };
+  }
+
+  function removePersistentGlitch() {
+    if (persistentGlitch && persistentGlitch.parentNode) {
+      persistentGlitch.parentNode.removeChild(persistentGlitch);
+    }
+    persistentGlitch = null;
+  }
+
+  // Plaatst een afbeelding op de exacte coördinaten van de laatste klik
+  function placeFinalImage(e) {
+    const container = stage || document.body;
+    const rect = container.getBoundingClientRect();
+    const cursorX = e.clientX - rect.left;
+    const cursorY = e.clientY - rect.top;
+
+    const finalImg = document.createElement('img');
+    finalImg.src = 'blackcracklive.png'; // Pas deze bestandsnaam aan naar jouw afbeelding!
+    finalImg.style.position = 'absolute';
+    finalImg.style.left = `${cursorX}px`;
+    finalImg.style.top = `${cursorY}px`;
+    
+    finalImg.style.transformOrigin = 'center center'; // Zorgt dat de zoom exact vanuit het middelpunt start
+    // Begin direct op ware grootte om het "pop" effect te vermijden
+    finalImg.style.transform = 'translate(-50%, -50%) scale(1)'; 
+    finalImg.style.pointerEvents = 'none';
+    finalImg.style.zIndex = 2; // Plaats hem onder de shardLayer, zodat de animaties er bovenop vallen
+
+    // Pas de grootte hier aan. Je kunt pixels ('300px'), of view width ('30vw') gebruiken.
+    finalImg.style.width = '800px';
+
+    container.appendChild(finalImg);
+
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        finalImg.style.transition = 'transform 1.6s ease-in'; // 4 seconden lang inzoomen
+        finalImg.style.transform = 'translate(-50%, -50%) scale(32)'; // Verhoogd naar 30 voor een diepere zoom
+      }, 900); // Wacht tot de eerste animatie (300ms) klaar is
+    });
+  }
+
+  function spawnClickSparks(e) {
+    const container = stage || document.body;
+    const rect = container.getBoundingClientRect();
+    const cx = e.clientX - rect.left;
+    const cy = e.clientY - rect.top;
+
+    ['spark STICKER.gif', 'SparkingGif.gif'].forEach((src, idx) => {
+      const s = document.createElement('img');
+      s.src = src;
+      s.style.position = 'absolute';
+      s.style.left = `${cx}px`;
+      s.style.top = `${cy}px`;
+      s.style.transform = 'translate(-50%, -50%)';
+      s.style.pointerEvents = 'none';
+      s.style.zIndex = 10000 + idx;
+      s.style.willChange = 'opacity, transform';
+      container.appendChild(s);
+
+      setTimeout(() => {
+        if (s.parentNode) s.parentNode.removeChild(s);
+      }, 900);
+    });
+  }
+
+  function triggerFullScreenFlash() {
+    const container = stage || document.body;
+    const rect = container.getBoundingClientRect();
+    const flash = document.createElement('div');
+    flash.style.position = 'absolute';
+    flash.style.left = '0';
+    flash.style.top = '0';
+    flash.style.width = rect.width + 'px';
+    flash.style.height = rect.height + 'px';
+    flash.style.background = '#fff';
+    flash.style.opacity = '0';
+    flash.style.pointerEvents = 'none';
+    flash.style.zIndex = 2147483647;
+    flash.style.transition = 'opacity 200ms ease-out';
+    container.appendChild(flash);
+
+    requestAnimationFrame(() => {
+      flash.style.opacity = '0.9';
+      setTimeout(() => {
+        flash.style.opacity = '0';
+        setTimeout(() => { if (flash.parentNode) flash.parentNode.removeChild(flash); }, 220);
+      }, 60);
+    });
+  }
+
+  // Speciale, intensere flash specifiek voor de laatste klik (breek moment)
+  function triggerFinalFlash() {
+    const container = stage || document.body;
+    const rect = container.getBoundingClientRect();
+    const flash = document.createElement('div');
+    flash.style.position = 'absolute';
+    flash.style.left = '0';
+    flash.style.top = '0';
+    flash.style.width = rect.width + 'px';
+    flash.style.height = rect.height + 'px';
+    flash.style.background = '#fff';
+    flash.style.opacity = '1'; // Begint direct volledig wit
+    flash.style.pointerEvents = 'none';
+    flash.style.zIndex = 2147483647; // Helemaal bovenaan
+    flash.style.transition = 'opacity 2000ms ease-out'; // Nog langzamere fade-out (2 seconden)
+    container.appendChild(flash);
+
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        flash.style.opacity = '0';
+        setTimeout(() => { if (flash.parentNode) flash.parentNode.removeChild(flash); }, 2200); // Verwijder nadat de transitie klaar is
+      }, 400); // Blijft iets langer (200ms) op volle sterkte fel wit staan
+    });
+  }
+
 
   // Background images (cycle through these)
-  const backgroundImages = ['NoClick.png', '1Click.png', '2Clicks.png', '3Clicks.png'];
+  const backgroundImages = ['NoClick.png', '1Click.png', '2Clicks.png', '3Clicks.png',];
   let clickIndex = 0; // start at NoClick
 
   function syncOverlaySize() {
@@ -244,7 +388,7 @@ function triggerFullScreenFlash() {
   function animateShards() {
     shards.forEach(node => {
       node.style.transition = 'transform 900ms cubic-bezier(.2,.9,.2,1), opacity 900ms linear';
-      node.style.opacity = '1';
+      node.style.opacity = '0'; // Verbergt de shards zodat de focus op de inzoomende barst ligt
       const tx = (Math.random() - 0.5) * imgSize.w * 0.75;
       const ty = (Math.random() - 0.5) * imgSize.h * 0.75;
       const r = (Math.random() - 0.5) * 90;
@@ -253,11 +397,18 @@ function triggerFullScreenFlash() {
   }
 
   function triggerSwirlRings() {
+    try {
+      whooshSound.currentTime = 0;
+      whooshSound.play();
+    } catch (err) {
+      // ignore
+    }
+
     const ns = 'http://www.w3.org/2000/svg';
     const swirlGroup = document.createElementNS(ns, 'g');
     swirlGroup.style.transformOrigin = `${imgSize.w / 2}px ${imgSize.h / 2}px`;
 
-    const maxR = Math.max(imgSize.w, imgSize.h) * 0.6;
+    const maxR = Math.max(imgSize.w, imgSize.h) * 1;
 
     for (let i = 0; i < 4; i++) {
       const ring = document.createElementNS(ns, 'circle');
@@ -266,8 +417,8 @@ function triggerFullScreenFlash() {
       ring.setAttribute('r', maxR * (0.25 + (i * 0.2)));
       ring.setAttribute('fill', 'none');
       ring.setAttribute('stroke', '#00ff66');
-      ring.setAttribute('stroke-width', 3 - (i * 0.5));
-      ring.setAttribute('stroke-dasharray', `${15 + i*20} ${15 + i*10}`);
+      ring.setAttribute('stroke-width', 25 - (i * 1.5));
+      ring.setAttribute('stroke-dasharray', `${15 + i * 20} ${15 + i * 10}`);
       swirlGroup.appendChild(ring);
     }
 
@@ -277,14 +428,14 @@ function triggerFullScreenFlash() {
     swirlGroup.style.opacity = '0';
 
     requestAnimationFrame(() => {
-      swirlGroup.style.transition = 'transform 1200ms cubic-bezier(0.5, 0, 0.2, 1), opacity 1000ms ease-out';
+      swirlGroup.style.transition = 'transform 1000ms cubic-bezier(0.5, 0, 0.2, 1), opacity 1000ms ease-out';
       swirlGroup.style.transform = 'rotate(-1080deg) scale(0)';
       swirlGroup.style.opacity = '0.7';
     });
 
     setTimeout(() => {
       if (swirlGroup.parentNode) swirlGroup.parentNode.removeChild(swirlGroup);
-    }, 1200);
+    }, 50);
   }
 
   function triggerDynamicGreenBall(onComplete) {
@@ -345,25 +496,27 @@ function triggerFullScreenFlash() {
     shardLayer.appendChild(ball);
     ball.getBoundingClientRect();
 
-    ball.style.transition = 'r 3000ms cubic-bezier(0.4, 0, 0.2, 1)';
+    ball.style.transition = 'r 5000ms cubic-bezier(0.4, 0, 0.2, 1)';
 
     requestAnimationFrame(() => {
-      const maxGrownRadius = Math.min(imgSize.w, imgSize.h) * 0.77;
+      const maxGrownRadius = Math.min(imgSize.w, imgSize.h) * 1;
       ball.setAttribute('r', maxGrownRadius);
     });
 
     setTimeout(() => {
       if (ball.parentNode) ball.parentNode.removeChild(ball);
       if (onComplete) onComplete();
-    }, 1250);
+    }, 1500);
   }
+
+
 
   function triggerBlackHole() {
     triggerSwirlRings();
 
     const wrapper = document.getElementById('shardWrapper');
     if (wrapper) {
-      wrapper.style.transition = 'transform 3000ms cubic-bezier(0.5, 0, 0.2, 1)';
+      wrapper.style.transition = 'transform 5000ms cubic-bezier(0.5, 0, 0.2, 1)';
       wrapper.style.transform = 'rotate(-540deg)';
     }
 
@@ -378,6 +531,13 @@ function triggerFullScreenFlash() {
   }
 
   function triggerFlash(onComplete) {
+    try {
+      boomSound.currentTime = 0;
+      boomSound.play();
+    } catch (err) {
+      // ignore
+    }
+
     const ns = 'http://www.w3.org/2000/svg';
     const flash = document.createElementNS(ns, 'circle');
 
@@ -410,12 +570,19 @@ function triggerFullScreenFlash() {
   }
 
   function triggerRewardSpotlight() {
+    try {
+      sparkleSound.currentTime = 0;
+      sparkleSound.play();
+    } catch (err) {
+      // ignore
+    }
+
     const ns = 'http://www.w3.org/2000/svg';
     const spotlightGroup = document.createElementNS(ns, 'g');
     spotlightGroup.id = 'rewardSpotlight';
 
-    const spotSize = Math.min(imgSize.w, imgSize.h) * 2;
-    const iconSize = Math.min(imgSize.w, imgSize.h) * 1.2;
+    const spotSize = Math.min(imgSize.w, imgSize.h) * 3.5;
+    const iconSize = Math.min(imgSize.w, imgSize.h) * 0.8;
     const centerX = imgSize.w / 2;
     const centerY = imgSize.h / 2;
 
@@ -425,75 +592,164 @@ function triggerFullScreenFlash() {
       shardLayer.appendChild(defs);
     }
 
-    const itemFilterId = 'rewardItemGlow';
-    if (!document.getElementById(itemFilterId)) {
-      const filter = document.createElementNS(ns, 'filter');
-      filter.setAttribute('id', itemFilterId);
-      filter.setAttribute('x', '-50%');
-      filter.setAttribute('y', '-50%');
-      filter.setAttribute('width', '200%');
-      filter.setAttribute('height', '200%');
+    // Maak een SVG radial gradient aan als vervanger voor de swirl.gif
+    const gradId = 'rewardSpotlightGradient';
+    if (!document.getElementById(gradId)) {
+      const radialGrad = document.createElementNS(ns, 'radialGradient');
+      radialGrad.setAttribute('id', gradId);
+      radialGrad.setAttribute('cx', '50%');
+      radialGrad.setAttribute('cy', '50%');
+      radialGrad.setAttribute('r', '50%');
 
-      const blur = document.createElementNS(ns, 'feGaussianBlur');
-      blur.setAttribute('stdDeviation', '100');
-      blur.setAttribute('result', 'blurOut');
+      const stop1 = document.createElementNS(ns, 'stop');
+      stop1.setAttribute('offset', '0%');
+      stop1.setAttribute('stop-color', '#a6ff00'); // Binnenste kleur (nu wit, pas aan naar wens)
 
-      const colorMatrix = document.createElementNS(ns, 'feColorMatrix');
-      colorMatrix.setAttribute('type', 'matrix');
-      colorMatrix.setAttribute('values', `
-        1 0 0 0 1.23 
-        0 1 0 0 2 
-        0 0 1 0 0.00  
-        0 0 0 1 0
-      `);
-      colorMatrix.setAttribute('result', 'coloredGlow');
+      const stopMiddle = document.createElementNS(ns, 'stop');
+      stopMiddle.setAttribute('offset', '33%');
+      stopMiddle.setAttribute('stop-color', '#d1ff00'); // Tweede kleur
 
-      const merge = document.createElementNS(ns, 'feMerge');
-      const node1 = document.createElementNS(ns, 'feMergeNode');
-      node1.setAttribute('in', 'coloredGlow');
-      const node2 = document.createElementNS(ns, 'feMergeNode');
-      node2.setAttribute('in', 'SourceGraphic');
+      const stopMiddle2 = document.createElementNS(ns, 'stop');
+      stopMiddle2.setAttribute('offset', '66%');
+      stopMiddle2.setAttribute('stop-color', '#d0ff007f'); // Derde (nieuwe) overgangskleur
 
-      merge.appendChild(node1);
-      merge.appendChild(node2);
-      filter.appendChild(blur);
-      filter.appendChild(colorMatrix);
-      filter.appendChild(merge);
-      defs.appendChild(filter);
+      const stop2 = document.createElementNS(ns, 'stop');
+      stop2.setAttribute('offset', '100%');
+      stop2.setAttribute('stop-color', '#d0ff0007'); // Buitenste rand (transparant)
+
+      // Animatie voor de X-positie (lichtpunt beweegt naar links en rechts)
+      const animFx = document.createElementNS(ns, 'animate');
+      animFx.setAttribute('attributeName', 'fx');
+      animFx.setAttribute('values', '40%; 60%; 40%');
+      animFx.setAttribute('dur', '8s');
+      animFx.setAttribute('repeatCount', 'indefinite');
+
+      // Animatie voor de Y-positie (lichtpunt beweegt op en neer)
+      const animFy = document.createElementNS(ns, 'animate');
+      animFy.setAttribute('attributeName', 'fy');
+      animFy.setAttribute('values', '40%; 60%; 40%');
+      animFy.setAttribute('dur', '7s'); // Iets andere tijdsduur voor een organisch en onregelmatig patroon
+      animFy.setAttribute('repeatCount', 'indefinite');
+
+      // Animatie voor de grootte (radius) zodat de gloed lichtjes pulseert / ademt
+      const animR = document.createElementNS(ns, 'animate');
+      animR.setAttribute('attributeName', 'r');
+      animR.setAttribute('values', '15%; 28%; 15%'); // Verlaag de percentages hier om de hele gradient kleiner te maken
+      animR.setAttribute('dur', '7s');
+      animR.setAttribute('repeatCount', 'indefinite');
+
+      radialGrad.appendChild(animFx);
+      radialGrad.appendChild(animFy);
+      radialGrad.appendChild(animR);
+
+      radialGrad.appendChild(stop1);
+      radialGrad.appendChild(stopMiddle);
+      radialGrad.appendChild(stopMiddle2);
+      radialGrad.appendChild(stop2);
+      defs.appendChild(radialGrad);
     }
 
-    const backdropImg = document.createElementNS(ns, 'image');
-    backdropImg.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'vuurwerkshow.gif');
-    backdropImg.setAttribute('width', spotSize);
-    backdropImg.setAttribute('height', spotSize);
-    backdropImg.setAttribute('x', centerX - (spotSize / 2));
-    backdropImg.setAttribute('y', centerY - (spotSize / 2));
+    // --- TWEEDE GRADIENT TOEVOEGEN ---
+    const gradId2 = 'rewardSpotlightGradient2';
+    if (!document.getElementById(gradId2)) {
+      const radialGrad2 = document.createElementNS(ns, 'radialGradient');
+      radialGrad2.setAttribute('id', gradId2);
+      radialGrad2.setAttribute('cx', '50%');
+      radialGrad2.setAttribute('cy', '50%');
+      
+      const stop1_2 = document.createElementNS(ns, 'stop');
+      stop1_2.setAttribute('offset', '0%');
+      stop1_2.setAttribute('stop-color', '#a3edad'); // Heldere witte/lichte kern
+      stop1_2.setAttribute('stop-opacity', '0.7');
+
+      const stop2_2 = document.createElementNS(ns, 'stop');
+      stop2_2.setAttribute('offset', '100%');
+      stop2_2.setAttribute('stop-color', '#75f0a6'); // Neon groene rand
+      stop2_2.setAttribute('stop-opacity', '0');
+
+      // Pulserende animatie voor de tweede gradient (sneller en ander bereik)
+      const animR2 = document.createElementNS(ns, 'animate');
+      animR2.setAttribute('attributeName', 'r');
+      animR2.setAttribute('values', '50%; 10%; 50%'); 
+      animR2.setAttribute('dur', '7s'); // Pulseert sneller dan de hoofdgradient (4s vs 7s)
+      animR2.setAttribute('repeatCount', 'indefinite');
+
+      radialGrad2.appendChild(animR2);
+      radialGrad2.appendChild(stop1_2);
+      radialGrad2.appendChild(stop2_2);
+      defs.appendChild(radialGrad2);
+    }
+
+    const backdropImg = document.createElementNS(ns, 'circle');
+    backdropImg.setAttribute('cx', centerX);
+    backdropImg.setAttribute('cy', centerY);
+    backdropImg.setAttribute('r', spotSize / 2);
+    backdropImg.setAttribute('fill', `url(#${gradId})`);
     backdropImg.style.filter = 'drop-shadow(0px 0px 25px rgba(255, 255, 255, 0.85))';
 
-    const rewardImg = document.createElementNS(ns, 'image');
-    rewardImg.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'tennagif.gif');
-    rewardImg.setAttribute('width', iconSize);
-    rewardImg.setAttribute('height', iconSize);
-    rewardImg.setAttribute('x', centerX - (iconSize / 2));
-    rewardImg.setAttribute('y', centerY - (iconSize * 0.55));
+    // Tweede cirkel voor de tweede gradient (overlappend)
+    const backdropImg2 = document.createElementNS(ns, 'circle');
+    backdropImg2.setAttribute('cx', centerX);
+    backdropImg2.setAttribute('cy', centerY);
+    backdropImg2.setAttribute('r', spotSize / 2);
+    backdropImg2.setAttribute('fill', `url(#${gradId2})`);
+    backdropImg2.style.mixBlendMode = 'screen'; // Zorgt voor een oplichtende kleurmenging met de achtergrond
 
-    rewardImg.setAttribute('filter', `url(#rewardItemGlow)`);
+    // Voeg een GIF toe achter het 3D-model, maar voor de gradient
+    const gifBackground = document.createElementNS(ns, 'image');
+    gifBackground.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'sparky.gif'); // Pas de bestandsnaam aan naar jouw GIF!
+    const gifSize = iconSize * 0.7; // Pas '1.5' aan om de GIF groter of kleiner te maken ten opzichte van het 3D model
+    gifBackground.setAttribute('x', centerX - (gifSize / 2));
+    gifBackground.setAttribute('y', centerY - (gifSize / 1.5));
+    gifBackground.setAttribute('width', gifSize);
+    gifBackground.setAttribute('height', gifSize);
+    gifBackground.style.pointerEvents = 'none'; // Voorkomt dat de GIF muisinteracties voor het 3D-model blokkeert
+
+    // --- GEWIJZIGDE CODE VOOR HET GLB MODEL ---
+    const foreignObject = document.createElementNS(ns, 'foreignObject');
+    foreignObject.setAttribute('x', centerX - (iconSize / 2));
+    foreignObject.setAttribute('y', centerY - (iconSize * 0.55));
+    foreignObject.setAttribute('width', iconSize);
+    foreignObject.setAttribute('height', iconSize);
+
+    const modelContainer = document.createElement('div');
+    modelContainer.style.width = '100%';
+    modelContainer.style.height = '100%';
+
+    // VERVANG "pad/naar/jouw-model.glb" MET JE EIGEN BESTAND / URL
+    modelContainer.innerHTML = `
+      <model-viewer 
+        src="Actie_Figuur.glb" 
+        auto-rotate 
+        rotation-per-second="20deg"
+        camera-controls 
+        disable-zoom
+        interaction-prompt="none"
+        environment-image="neutral"
+        style="width: 100%; height: 100%; background-color: transparent; outline: none;">
+        <div slot="progress-bar"></div>
+      </model-viewer>
+    `;
+    foreignObject.appendChild(modelContainer);
+    // ------------------------------------------
 
     const text = document.createElementNS(ns, 'text');
     text.setAttribute('x', centerX);
-    text.setAttribute('y', centerY + (iconSize * 0.55));
+    text.setAttribute('y', centerY + (iconSize * 0.50));
     text.setAttribute('text-anchor', 'middle');
     text.setAttribute('dominant-baseline', 'middle');
-    text.setAttribute('fill', '#ffffff');
+    text.setAttribute('fill', '#160606');
     text.style.fontFamily = "'Grandia', system-ui, sans-serif";
     text.style.fontWeight = '900';
     text.style.fontSize = `${Math.min(imgSize.w, imgSize.h) * 0.07}px`;
-    text.style.letterSpacing = '2px';
+    text.style.letterSpacing = '5px';
     text.textContent = 'Je cadeau is onderweg !';
-    text.style.filter = 'drop-shadow(0px 0px 8px rgba(255, 255, 255, 0.6))';
+    text.style.filter = 'drop-shadow(0px 0px 8px rgb(17, 14, 14))';
 
     spotlightGroup.appendChild(backdropImg);
-    spotlightGroup.appendChild(rewardImg);
+    spotlightGroup.appendChild(backdropImg2); // Voeg de tweede gradientlaag toe
+    spotlightGroup.appendChild(gifBackground); // Plaats de GIF tussen de backdrop en het 3D model in
+    spotlightGroup.appendChild(foreignObject);
     text.style.pointerEvents = 'none';
     spotlightGroup.appendChild(text);
 
@@ -528,7 +784,7 @@ function triggerFullScreenFlash() {
       const ctx = captureCanvas.getContext('2d');
 
       const renderVehicle = new Image();
-      renderVehicle.onload = function() {
+      renderVehicle.onload = function () {
         ctx.clearRect(0, 0, imgSize.w, imgSize.h);
         ctx.drawImage(renderVehicle, 0, 0);
         const dataFrameUrl = captureCanvas.toDataURL('image/png');
@@ -585,16 +841,35 @@ function triggerFullScreenFlash() {
     requestAnimationFrame(() => {
       animateShards();
 
+      // Start de Swirl Rings en het Black Hole effect tegelijkertijd tijdens de inzoom-animatie
       setTimeout(() => {
-        triggerBlackHole();
+        triggerSwirlRings();
+        triggerBlackHole(); // Speel het black hole effect af
 
+        // Maak de shards direct weer zichtbaar, zodat we ze daadwerkelijk de black hole in zien vliegen
+        shards.forEach(node => {
+          node.style.transition = 'none'; // Voorkom oude transities
+          
+          // Bepaal een willekeurige positie ver buiten het scherm (in een grote cirkel rond het midden)
+          const angle = Math.random() * Math.PI * 2;
+          const distance = Math.max(imgSize.w, imgSize.h) * 1.5; // Ruim buiten beeld
+          const startX = Math.cos(angle) * distance;
+          const startY = Math.sin(angle) * distance;
+          
+          // Vergroot de scale (bijv. scale(3) of scale(5)) om de scherven veel groter in beeld te laten komen
+          node.style.transform = `translate(${startX}px, ${startY}px) rotate(${Math.random() * 360}deg) scale(2.5)`;
+          node.style.opacity = '1';
+          
+          node.getBoundingClientRect(); // Forceer een 'reflow' zodat de browser deze nieuwe startpositie direct registreert
+        });
+
+        // Activeer de dynamische groene bal en toon daarna de flits en beloning
         triggerDynamicGreenBall(() => {
           triggerFlash(() => {
             triggerRewardSpotlight();
           });
         });
-
-      }, 1000);
+      }, 1400); // Verlaag dit getal (was 3300) om de animaties eerder te starten
     });
   }
 
@@ -615,6 +890,8 @@ function triggerFullScreenFlash() {
   }
 
   function handlePointer(e) {
+    if (!experienceActive) return;
+
     // Calculate pointer coordinates (kept for potential later use)
     const rect = img.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * imgSize.w;
@@ -622,6 +899,17 @@ function triggerFullScreenFlash() {
 
     clicks = Math.min(MAX_CLICKS, clicks + 1);
     updateProgress();
+
+    // play hammer tap sound for non-final clicks (only if experience is active and stage is clicked)
+    if (clickIndex < backgroundImages.length - 1) {
+      try {
+        const snd = tapSounds[clickIndex % tapSounds.length];
+        snd.currentTime = 0;
+        snd.play();
+      } catch (err) {
+        // autoplay or play errors are ignored
+      }
+    }
 
     spawnClickSparks(e);
     triggerFullScreenFlash();
@@ -641,6 +929,18 @@ function triggerFullScreenFlash() {
 
     // If the final background is already visible and user clicks, remove glitch then shatter.
     removePersistentGlitch();
+
+    // Play cinematic final hit (before final visuals)
+    try {
+      finalHit.currentTime = 0;
+      finalHit.play();
+    } catch (err) {
+      // ignore
+    }
+
+    placeFinalImage(e); // Plaats de afbeelding exact op de klik
+    triggerFinalFlash(); // Voeg de speciale extra witte flits toe
+
     shatter();
     stage.removeEventListener('pointerdown', handlePointer);
   }
@@ -657,5 +957,5 @@ function triggerFullScreenFlash() {
   }
 
   window.addEventListener('resize', syncOverlaySize);
-  if (stage) stage.addEventListener('pointerdown', handlePointer);
+  showWarningScreen();
 });
